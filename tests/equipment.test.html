@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Equipment-Tests</title>
+  <style>
+    body{background:#0e0f10;color:#eceef0;font:14px/1.5 ui-monospace,Menlo,monospace;padding:16px;max-width:900px;margin:auto}
+    .ok{color:#5fd38a}.fail{color:#ff5a4f}h1{font-size:18px}
+    li{margin:2px 0}
+  </style>
+</head>
+<body>
+  <h1>Equipment-Matching · Tests</h1>
+  <p id="sum">läuft …</p>
+  <ul id="out"></ul>
+  <script type="module">
+    import { matchEquipment, equipmentSentence } from '../js/equipment.js';
+    import { SEED_RULES } from '../js/seed-rules.js';
+    const out = document.getElementById('out');
+    let pass = 0, fail = 0;
+    const tips = (text) => matchEquipment(text, SEED_RULES).map((m) => m.tip);
+    function t(name, cond, info = '') {
+      const li = document.createElement('li');
+      li.className = cond ? 'ok' : 'fail';
+      li.textContent = `${cond ? '✓' : '✗'} ${name}${cond ? '' : '  → ' + info}`;
+      out.appendChild(li);
+      cond ? pass++ : fail++;
+    }
+    const has = (text, tip) => { const r = tips(text); t(`"${text}" → ${tip}`, r.includes(tip), JSON.stringify(r)); };
+    const hasNot = (text, tip) => { const r = tips(text); t(`"${text}" ↛ ${tip}`, !r.includes(tip), JSON.stringify(r)); };
+
+    // Abnahmekriterien
+    hasNot('5 Runden: 10 Burpees', 'Laufschuhe');
+    hasNot('Wenn du magst, mach mehr', 'eigenes Springseil');
+    hasNot('wenn du willst', 'eigenes Springseil');
+    // Laufen
+    has('800 m Run', 'Laufschuhe');
+    has('4 Runden:\n400m Run\n20 Wall Balls', 'Laufschuhe');
+    has('1km Lauf', 'Laufschuhe');
+    has('1 km Ski', 'Laufschuhe');
+    has('Sled Push 50 m', 'Laufschuhe');
+    has('HYROX-Sim', 'Laufschuhe');
+    hasNot('Running Man Stretch', 'Laufschuhe');
+    hasNot('Brunch danach', 'Laufschuhe');
+    // Grips
+    has('10 Toes-to-Bar', 'Grips');
+    has('10 toes to bar', 'Grips');
+    has('15 T2B', 'Grips');
+    has('5 Pull-Ups', 'Grips');
+    has('5 pullups', 'Grips');
+    has('3 Bar Muscle-Ups', 'Grips');
+    // Springseil
+    has('50 DU', 'eigenes Springseil');
+    has('100 DUs', 'eigenes Springseil');
+    has('50 Double-Unders', 'eigenes Springseil');
+    has('100 Single Unders', 'eigenes Springseil');
+    hasNot('du schaffst das', 'eigenes Springseil');
+    // Sonstiges
+    has('30 Burpees', 'Handtuch & Wechselshirt');
+    has('HSPU', 'Handtuch & Wechselshirt');
+    has('3 Rope Climbs', 'lange Socken / Kniestrümpfe');
+    has('5x3 Back Squat', 'Gewichthebergürtel / Hebeschuhe (optional)');
+    has('Squat Clean 10', 'Gewichthebergürtel / Hebeschuhe (optional)');
+    hasNot('Cleanup nach dem Training', 'Gewichthebergürtel / Hebeschuhe (optional)');
+    has('500 m Row', 'Handtuch');
+    has('Rudern 2000 m', 'Handtuch');
+    hasNot('Arrow', 'Handtuch');
+    has('20 Wall Balls', 'Handgelenk-Bandagen (optional)');
+    hasNot('Ballspiel', 'Handgelenk-Bandagen (optional)');
+    // Keine Doppelten, Begriffe aus dem Originaltext
+    {
+      const m = matchEquipment('10 Toes-to-Bar\n10 Pull-Ups\n200 m Run', SEED_RULES);
+      t('Tipp nur einmal', m.filter((x) => x.tip === 'Grips').length === 1, JSON.stringify(m));
+      const grips = m.find((x) => x.tip === 'Grips');
+      t('Begriff aus dem Original-Text', grips && grips.terms[0] === 'Toes-to-Bar', JSON.stringify(grips));
+      const s = equipmentSentence(m);
+      t('Satz', s === 'Grips (Toes-to-Bar) und Laufschuhe (200 m)', s);
+      const s2 = equipmentSentence(matchEquipment('20 Wall Balls', SEED_RULES));
+      t('Satz mit (optional)', s2 === 'Handgelenk-Bandagen (Wall Balls, optional)', s2);
+    }
+    t('Leerer Text', matchEquipment('', SEED_RULES).length === 0);
+    t('Inaktive Regel wird ignoriert', matchEquipment('Run', [{ keywords: ['run'], tip: 'X', active: false }]).length === 0);
+
+    document.getElementById('sum').innerHTML = fail
+      ? `<span class="fail">${fail} FEHLER</span> · ${pass} ok`
+      : `<span class="ok">ALLE ${pass} TESTS OK</span>`;
+    document.title = fail ? `✗ ${fail} Fehler` : `✓ ${pass} ok`;
+    window.__result = { pass, fail };
+  </script>
+</body>
+</html>

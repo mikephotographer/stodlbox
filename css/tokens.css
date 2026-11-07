@@ -1,0 +1,19 @@
+:root{
+  --bg:#0e0f10;        /* Hintergrund */
+  --surface:#17191b;   /* Karten, Eingabefelder */
+  --surface-2:#202326; /* gedrückt / hover */
+  --line:#2c2f33;      /* Rahmen, Trennlinien */
+  --line-soft:#1d2023;
+  --text:#eceef0;
+  --muted:#9aa1a8;     /* Labels, Meta – Kontrast auf --bg ≥ 4.5:1 */
+  --accent:#f5c400;    /* Warngelb */
+  --on-accent:#0e0f10;
+  --danger:#ff5a4f;
+  --ok:#5fd38a;
+  --font-display:'Anton',Impact,'Arial Narrow',sans-serif;          /* Titel, große Zahlen, Buttons */
+  --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace; /* Labels, Meta, WOD-Text */
+  --font-body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif; /* Fließtext, Namen, Inputs */
+  --pad:16px;
+  --maxw:480px;
+  color-scheme:dark;
+}
