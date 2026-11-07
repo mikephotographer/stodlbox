@@ -115,7 +115,7 @@ function isoWeek(dateStr) {
 let db;
 function load() {
   try { db = JSON.parse(localStorage.getItem(KEY)); } catch { db = null; }
-  if (!db || !db.members) { db = seed(); persist(); }
+  if (!db || !db.members) { db = seed(); generateSeries(6); persist(); }
 }
 function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* egal */ }
@@ -607,5 +607,5 @@ export const mockApi = {
   }),
 
   // Nur Demo: alles zurücksetzen
-  resetDemo: async () => { db = seed(); persist(); },
+  resetDemo: async () => { db = seed(); generateSeries(6); persist(); },
 };

@@ -92,9 +92,11 @@ boot().catch((e) => {
   mount(root, html`<div class="empty-state"><p class="label">// FEHLER BEIM START</p><p>Bitte neu laden.</p></div>`);
 });
 
-// Service Worker für Offline-Start (nicht im Demo-/Dateimodus nötig, schadet aber nicht)
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
-  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+// Service Worker für Offline-Start
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  const reg = () => navigator.serviceWorker.register('sw.js').catch(() => {});
+  if (document.readyState === 'complete') reg();
+  else window.addEventListener('load', reg);
 }
 
 export { route };

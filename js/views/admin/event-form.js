@@ -137,8 +137,8 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
 
         <div class="field"><span class="label">Workout</span>
           <div class="seg" role="group" aria-label="Workout-Modus">
-            <button type="button" data-action="mode" data-mode="fixed" aria-pressed="${f.mode === 'fixed'}">Fixes WOD</button>
-            <button type="button" data-action="mode" data-mode="vote" aria-pressed="${f.mode === 'vote'}">Voting (2–3)</button>
+            <button type="button" data-action="mode" data-mode="fixed" aria-pressed="${String(f.mode === 'fixed')}">Fixes WOD</button>
+            <button type="button" data-action="mode" data-mode="vote" aria-pressed="${String(f.mode === 'vote')}">Voting (2–3)</button>
           </div>
         </div>
 

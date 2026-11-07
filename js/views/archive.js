@@ -15,7 +15,7 @@ function item(e) {
     <div class="row" style="flex-wrap:nowrap;align-items:flex-start;gap:14px">
       <span class="daynum sm" aria-hidden="true">${dayNum(e.starts_at)}</span>
       <div style="flex:1;min-width:0">
-        <a href="#/t/${e.id}" style="text-decoration:none"><span class="list-item" style="padding:0;display:block"><span class="t" style="display:block">${e.title}</span></span></a>
+        <a class="title md" href="#/t/${e.id}" style="text-decoration:none;display:block;margin:0">${e.title}</a>
         <p class="mono muted" style="font-size:12px;margin-top:4px">${short(e.starts_at)}${e.status === 'cancelled' ? ' · ABGESAGT' : ` · ${c.yes} DABEI`}</p>
         ${names.length ? html`<p class="mono" style="font-size:13px;margin-top:6px">✓ ${names.join(' · ')}</p>` : ''}
         ${e.workout ? html`<details style="margin-top:8px"><summary class="link" style="padding:0;display:inline-flex;align-items:center">workout anzeigen</summary>${wodBox(e.workout)}</details>` : ''}

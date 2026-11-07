@@ -39,7 +39,7 @@ export function pollMatrix(poll, me, { editable = true } = {}) {
           <th class="who" scope="row">${me.name} (du)</th>
           ${poll.options.map((o) => canEdit
             ? html`<td><button class="cell-btn" data-action="poll-toggle" data-poll="${poll.id}" data-option="${o.id}"
-                aria-pressed="${mine.has(o.id)}" aria-label="${mine.has(o.id) ? 'Kann' : 'Kann nicht'}"><span class="box">${mine.has(o.id) ? icons.check(14) : ''}</span></button></td>`
+                aria-pressed="${String(mine.has(o.id))}" aria-label="${mine.has(o.id) ? 'Kann' : 'Kann nicht'}"><span class="box">${mine.has(o.id) ? icons.check(14) : ''}</span></button></td>`
             : html`<td>${mine.has(o.id) ? html`<span class="tick">✓</span>` : ''}</td>`)}
         </tr>` : ''}
         ${others.map((p) => html`<tr>

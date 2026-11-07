@@ -58,9 +58,18 @@ export function sheet(title, content, bind) {
       ${content}
     </div>`);
     document.body.appendChild(dlg);
-    let result;
-    const close = (v) => { result = v; dlg.close(); };
-    dlg.addEventListener('close', () => { dlg.remove(); resolve(result); });
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      if (dlg.open) dlg.close();
+      dlg.remove();
+      resolve(v);
+    };
+    // Nicht nur auf das close-Event verlassen – manche Browser feuern es verzögert oder gar nicht.
+    const close = (v) => finish(v);
+    dlg.addEventListener('close', () => finish(undefined));
+    dlg.addEventListener('cancel', (ev) => { ev.preventDefault(); finish(undefined); });
     dlg.addEventListener('click', (ev) => {
       if (ev.target === dlg || ev.target.closest('[data-close]')) close();
     });

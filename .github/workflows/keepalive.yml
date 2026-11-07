@@ -1,0 +1,27 @@
+# Hält das Supabase-Gratisprojekt wach (wird sonst nach ~7 Tagen ohne Aktivität pausiert).
+# Ruft 2× pro Woche check_code mit einem Dummy-Code auf. Die Antwort ist egal.
+# Benötigt die Repository-Secrets SUPABASE_URL und SUPABASE_ANON_KEY (siehe SETUP.md).
+name: Supabase Keepalive
+
+on:
+  schedule:
+    - cron: '17 6 * * 1,4'   # Mo + Do, 06:17 UTC
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check_code aufrufen
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "Secrets SUPABASE_URL / SUPABASE_ANON_KEY fehlen – siehe SETUP.md"; exit 1
+          fi
+          status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$SUPABASE_URL/rest/v1/rpc/check_code" \
+            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" -d '{"p_code":"keepalive"}')
+          echo "HTTP $status"
+          test "$status" = "200"

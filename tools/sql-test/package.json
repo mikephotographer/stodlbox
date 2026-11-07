@@ -1,0 +1,8 @@
+{
+  "name": "stodlbox-sql-test",
+  "private": true,
+  "description": "Führt supabase/tests.sql lokal gegen PGlite (Postgres als WASM) aus. Nicht Teil der App.",
+  "type": "module",
+  "scripts": { "test": "node run.mjs" },
+  "dependencies": { "@electric-sql/pglite": "0.5.10" }
+}

@@ -115,6 +115,8 @@ h1,h2,h3,p{margin:0}
   background:none;border:0;cursor:pointer;padding:0 4px;min-height:44px;
   font-family:var(--font-mono);font-size:14px;color:var(--text);text-decoration:underline;text-underline-offset:4px;text-transform:lowercase;
 }
+.link{display:inline-flex;align-items:center;justify-content:center}
+.link.danger{color:var(--danger)}
 .link.on{color:var(--accent);font-weight:700;text-decoration-thickness:2px}
 .link.muted{color:var(--muted)}
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;min-width:44px;padding:0 12px;background:var(--surface);border:1px solid var(--line);cursor:pointer;font-family:var(--font-mono);font-size:12px;letter-spacing:1px;text-transform:uppercase;text-decoration:none;color:var(--text)}

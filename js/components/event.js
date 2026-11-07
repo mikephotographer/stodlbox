@@ -103,11 +103,11 @@ export function rsvpBlock(e) {
     no: 'Du hast abgesagt.',
   }[my] || (full ? 'Alle Plätze sind belegt – du kommst auf die Warteliste.' : '');
   return html`<div class="rsvp">
-    <button class="btn ${my && !primaryOn ? 'ghost' : ''} ${primaryOn ? 'is-on' : ''}" data-action="rsvp" data-status="yes" aria-pressed="${primaryOn}">
+    <button class="btn ${my && !primaryOn ? 'ghost' : ''} ${primaryOn ? 'is-on' : ''}" data-action="rsvp" data-status="yes" aria-pressed="${String(primaryOn)}">
       ${primaryOn ? icons.check(22) : ''}${primaryLabel}</button>
     <div class="rsvp-alt">
-      <button class="link ${my === 'maybe' ? 'on' : ''}" data-action="rsvp" data-status="maybe" aria-pressed="${my === 'maybe'}">vielleicht</button>
-      <button class="link ${my === 'no' ? 'on' : ''}" data-action="rsvp" data-status="no" aria-pressed="${my === 'no'}">kann nicht</button>
+      <button class="link ${my === 'maybe' ? 'on' : ''}" data-action="rsvp" data-status="maybe" aria-pressed="${String(my === 'maybe')}">vielleicht</button>
+      <button class="link ${my === 'no' ? 'on' : ''}" data-action="rsvp" data-status="no" aria-pressed="${String(my === 'no')}">kann nicht</button>
     </div>
     <p class="rsvp-state" aria-live="polite">${state}</p>
   </div>`;
