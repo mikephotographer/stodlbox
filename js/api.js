@@ -51,9 +51,21 @@ const real = {
     const { data } = await c.auth.getSession();
     return data.session ? { email: data.session.user.email } : null;
   },
+  /** Rücksprung aus dem Magic Link (#access_token=… bzw. ?code=…) verarbeiten */
+  async handleAuthRedirect() {
+    const h = location.hash;
+    const q = new URLSearchParams(location.search);
+    if (!/access_token=|error_description=/.test(h) && !q.has('code')) return false;
+    const c = await client();
+    await c.auth.getSession(); // detectSessionInUrl wertet die URL beim Start aus
+    q.delete('code');
+    const rest = q.toString();
+    history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + '#/admin');
+    return true;
+  },
   async sendLogin(email) {
     const c = await client();
-    const redirect = location.origin + location.pathname + '#/admin';
+    const redirect = location.origin + location.pathname;
     check(await c.auth.signInWithOtp({ email, options: { shouldCreateUser: false, emailRedirectTo: redirect } }));
   },
   async verifyLogin(email, token) {

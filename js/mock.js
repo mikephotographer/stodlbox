@@ -425,6 +425,7 @@ export const mockApi = {
   }),
 
   // ---------- Admin: Login (Demo: jede Mail, Code 123456) ----------
+  handleAuthRedirect: async () => false,
   session: rd(() => db.session),
   sendLogin: tx((email) => { if (!/.+@.+/.test(email)) throw err('INVALID'); db.pendingEmail = email; }),
   verifyLogin: tx((email, token) => {

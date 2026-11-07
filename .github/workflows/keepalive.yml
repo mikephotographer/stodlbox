@@ -20,8 +20,10 @@ jobs:
           if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
             echo "Secrets SUPABASE_URL / SUPABASE_ANON_KEY fehlen – siehe SETUP.md"; exit 1
           fi
+          auth=()
+          case "$SUPABASE_ANON_KEY" in eyJ*) auth=(-H "Authorization: Bearer $SUPABASE_ANON_KEY");; esac
           status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$SUPABASE_URL/rest/v1/rpc/check_code" \
-            -H "apikey: $SUPABASE_ANON_KEY" -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "apikey: $SUPABASE_ANON_KEY" "${auth[@]}" \
             -H "Content-Type: application/json" -d '{"p_code":"keepalive"}')
           echo "HTTP $status"
           test "$status" = "200"

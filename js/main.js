@@ -67,6 +67,7 @@ async function takeCodeFromUrl() {
 }
 
 async function boot() {
+  try { await api.handleAuthRedirect(); } catch { /* Login-Link ungültig → normaler Login */ }
   await startRouter([
     [/^\/$/, friend(renderBoard)],
     [/^\/t\/([\w-]+)$/, friend(renderEvent)],
