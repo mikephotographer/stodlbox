@@ -20,6 +20,7 @@ export const icons = {
   refresh: (s = 18) => svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>', s),
   list: (s = 22) => svg('<path d="M4 6h16M4 12h16M4 18h16"/>', s),
   vote: (s = 22) => svg('<path d="M4 20h16"/><rect x="5" y="11" width="3" height="9"/><rect x="10.5" y="6" width="3" height="14"/><rect x="16" y="14" width="3" height="6"/>', s),
+  archive: (s = 22) => svg('<path d="M3 4h18v4H3z"/><path d="M5 8v12h14V8"/><path d="M10 12h4"/>', s),
   doc: (s = 22) => svg('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>', s),
   bag: (s = 22) => svg('<path d="M4 8h16l-1 13H5z"/><path d="M9 8V5h6v3"/>', s),
   more: (s = 22) => svg('<circle cx="5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="19" cy="12" r="1.2"/>', s, 2.6),

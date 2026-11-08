@@ -9,6 +9,7 @@ import { counts, isOpenVote, voteEnded, dateBlock } from '../../components/event
 import { pollMatrix, bestOptionIds, optionHead } from '../../components/poll.js';
 import { appLink, shareText, voteShareText, eventShareText, pollShareText } from '../../share.js';
 import { navigate } from '../../router.js';
+import { tabbar as bar } from '../../components/tabbar.js';
 import { renderEventForm } from './event-form.js';
 import { renderSeriesForm, renderPollForm } from './forms.js';
 import { renderWorkouts, renderEquipment, renderPeople, renderSettings } from './manage.js';
@@ -33,13 +34,7 @@ export function adminHead(title, { back, plus } = {}) {
 }
 
 function tabbar(active) {
-  document.querySelector('.tabbar')?.remove();
-  const el = document.createElement('div');
-  el.className = 'tabbar';
-  mount(el, html`<nav aria-label="Admin">${TABS.map(([path, label, icon]) => html`<a href="#/admin${path ? '/' + path : ''}"
-    ${path === active ? html`aria-current="page"` : ''}>${icon(22)}<span>${label}</span></a>`)}</nav>`);
-  document.getElementById('app').after(el);
-  document.getElementById('app').classList.add('has-tabbar');
+  bar(TABS.map(([path, label, icon]) => [`#/admin${path ? '/' + path : ''}`, label, icon, path]), active, 'Admin');
 }
 
 // ---------------------------------------------------------------- Login

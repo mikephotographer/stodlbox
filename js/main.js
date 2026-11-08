@@ -9,6 +9,8 @@ import { renderArchive } from './views/archive.js';
 import { renderPoll } from './views/poll.js';
 import { renderWorkouts, renderWorkout } from './views/workouts.js';
 import { html, mount } from './html.js';
+import { icons } from './icons.js';
+import { tabbar } from './components/tabbar.js';
 
 const root = document.getElementById('app');
 let currentReload = null;
@@ -32,8 +34,21 @@ function friend(view) {
     if (codeError) return renderCode(root, { error: codeError });
     if (!state.code) return renderCode(root);
     if (!state.member) return renderWho(root);
+    friendTabbar();
     currentReload = await view(root, ...args);
   };
+}
+
+const FRIEND_TABS = [
+  ['#/', 'Termine', icons.calendar, 'termine'],
+  ['#/workouts', 'Workouts', icons.doc, 'workouts'],
+  ['#/archiv', 'Archiv', icons.archive, 'archiv'],
+];
+
+function friendTabbar() {
+  const { path } = parseHash();
+  const active = path.startsWith('/workouts') ? 'workouts' : path === '/archiv' ? 'archiv' : 'termine';
+  tabbar(FRIEND_TABS, active, 'Hauptmenü');
 }
 
 async function admin(sub = '') {

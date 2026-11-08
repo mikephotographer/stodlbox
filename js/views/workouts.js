@@ -57,16 +57,14 @@ export async function renderWorkouts(root) {
   };
 
   mount(root, html`${topbar()}
-    <a class="back" href="#/">${icons.back()} Übersicht</a>
-    <h1 class="page-title" style="margin:8px 0 4px">Workouts</h1>
+    <h1 class="page-title" style="margin-bottom:4px">Workouts</h1>
     <p class="muted" style="margin:0 0 16px">Zum Nachschlagen und für dein eigenes Training.</p>
     <main id="main">
       <label class="sr-only" for="wo-q">Workouts durchsuchen</label>
       <input class="input" id="wo-q" type="search" placeholder="Suchen: Name, Übung, Gruppe …" autocomplete="off" value="${q}">
       <div id="wo-chips"></div>
       <div id="wo-list"></div>
-    </main>
-    <footer class="footer"><a href="#/">Übersicht</a><a href="#/archiv">Archiv</a></footer>`);
+    </main>`);
   drawList();
   if (scrollY) requestAnimationFrame(() => window.scrollTo(0, scrollY));
 
@@ -108,6 +106,5 @@ export async function renderWorkout(root, id) {
       ${w.tags && w.tags.length ? html`<div class="chips wrap">${w.tags.map((t) => html`<a class="chip" href="#/workouts?g=${encodeURIComponent(t)}">${t}</a>`)}</div>` : ''}
       <div class="wod"><div class="wod-body">${w.workout}</div></div>
       ${w.notes ? html`<p class="wo-notes">${w.notes}</p>` : ''}
-    </main>
-    <footer class="footer"><a href="#/workouts">Alle Workouts</a><a href="#/">Übersicht</a></footer>`);
+    </main>`);
 }

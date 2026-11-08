@@ -270,10 +270,12 @@ input[type=date].input,input[type=time].input,input[type=datetime-local].input{m
 .back{display:inline-flex;align-items:center;gap:6px;min-height:40px;font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);text-decoration:none;background:none;border:0;cursor:pointer;padding:0}
 .back:hover{color:var(--text)}
 .tabbar{
-  position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom);
+  position:fixed;left:0;right:0;bottom:0;z-index:20;margin:0;padding:0 0 env(safe-area-inset-bottom);
+  background:var(--bg);border-top:1px solid var(--line);box-shadow:none;
 }
-.tabbar nav{max-width:var(--maxw);margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.tabbar nav{max-width:var(--maxw);margin:0 auto;display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
+.tabbar a:hover{color:var(--text)}
+body:has(.tabbar) .toast{bottom:calc(76px + env(safe-area-inset-bottom))}
 .tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:60px;text-decoration:none;color:var(--muted);font-size:12px;font-weight:500}
 .tabbar a[aria-current="page"]{color:var(--text);font-weight:600;box-shadow:inset 0 3px 0 var(--accent)}
 .kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}

@@ -29,8 +29,7 @@ export async function renderArchive(root) {
   let items = [];
   let more = false;
   const draw = () => mount(root, html`${topbar()}
-    <a class="back" href="#/">${icons.back()} Übersicht</a>
-    <h1 class="page-title" style="margin:8px 0 16px">Archiv</h1>
+    <h1 class="page-title" style="margin-bottom:16px">Archiv</h1>
     <main id="main">
       ${items.length ? html`<ul class="list">${items.map(item)}</ul>` : html`<div class="empty-state"><p class="label">Noch nichts im Archiv</p><p>Hier landen vergangene Trainings mit Workout und Teilnehmern.</p></div>`}
       ${more ? html`<div class="form-actions"><button class="btn ghost" id="more">Mehr laden</button></div>` : ''}

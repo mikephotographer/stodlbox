@@ -58,8 +58,6 @@ function view(d) {
       ${a2hsTip()}
     </main>
     <footer class="footer">
-      <a href="#/archiv">Archiv</a>
-      <a href="#/workouts">Workouts</a>
       <a href="#/admin">Admin</a>
     </footer>`;
 }
