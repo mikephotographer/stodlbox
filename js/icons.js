@@ -9,6 +9,7 @@ export const icons = {
   warn: (s = 22) => svg('<path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18v.5"/>', s, 2.2),
   calendar: (s) => svg('<rect x="3" y="5" width="18" height="16"/><path d="M3 10h18M8 3v4M16 3v4"/>', s),
   share: (s) => svg('<path d="M12 3v13"/><path d="m7 8 5-5 5 5"/><path d="M5 13v8h14v-8"/>', s),
+  play: (s = 18) => svg('<path d="M7 4.5v15l12-7.5z" fill="currentColor" stroke="none"/>', s),
   photo: (s) => svg('<rect x="3" y="6" width="18" height="14"/><circle cx="12" cy="13" r="3.5"/><path d="M8 6l2-3h4l2 3"/>', s),
   user: (s = 16) => svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>', s),
   chevron: (s = 18) => svg('<path d="m9 5 7 7-7 7"/>', s),

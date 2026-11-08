@@ -32,6 +32,8 @@ const MESSAGES = {
   PHOTOS_LIMIT: 'Du hast schon 20 Fotos von diesem Training hochgeladen.',
   BAD_TICKET: 'Der Upload hat zu lange gedauert. Bitte nochmal.',
   NOT_IMAGE: 'Das ist kein Foto, das wir lesen können.',
+  VIDEO_TOO_BIG: 'Video zu groß (max. 50 MB). Kürzen oder in Full HD statt 4K filmen.',
+  VIDEO_LIMIT: 'Du hast schon 3 Videos von diesem Training hochgeladen.',
 };
 
 /** Fehler aus der API in einen verständlichen Satz übersetzen */

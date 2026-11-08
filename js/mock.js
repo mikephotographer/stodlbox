@@ -457,20 +457,24 @@ export const mockApi = {
     if (a === 'early') throw err('PHOTOS_EARLY');
     if (a === 'expired') throw err('PHOTOS_EXPIRED');
     if (a !== 'yes') throw err('PHOTOS_NOT_PARTICIPANT');
-    const n = db.photos.filter((p) => p.event_id === eventId && p.member_id === memberId).length;
-    if (n >= 20) throw err('PHOTOS_LIMIT');
+    const mine = db.photos.filter((p) => p.event_id === eventId && p.member_id === memberId);
+    const np = mine.filter((p) => (p.kind || 'photo') === 'photo').length;
+    const nv = mine.filter((p) => p.kind === 'video').length;
+    if (np >= 20 && nv >= 3) throw err('PHOTOS_LIMIT');
     const t = { token: uid(), event_id: eventId, member_id: memberId };
     db.photoTickets.push(t);
-    return { ticket: t.token, prefix: `${eventId}/${t.token}/`, left: 20 - n };
+    return { ticket: t.token, prefix: `${eventId}/${t.token}/`, left: Math.max(0, 20 - np), left_videos: Math.max(0, 3 - nv) };
   }),
   uploadPhotoFile: async (path, blob) => { photoFiles.set(path, URL.createObjectURL(blob)); return delay(null); },
-  addPhoto: tx((memberId, path, thumbPath, w, h) => {
+  addMedia: tx((memberId, path, thumbPath, w, h, kind = 'photo', duration = null) => {
     assertCode(code());
     const [eventId, token] = path.split('/');
     const t = db.photoTickets.find((x) => x.token === token && x.event_id === eventId && x.member_id === memberId);
     if (!t) throw err('BAD_TICKET');
-    if (db.photos.filter((p) => p.event_id === eventId && p.member_id === memberId).length >= 20) throw err('PHOTOS_LIMIT');
-    const row = { id: uid(), event_id: eventId, member_id: memberId, path, thumb_path: thumbPath, width: w, height: h, created_at: nowISO() };
+    const n = db.photos.filter((p) => p.event_id === eventId && p.member_id === memberId && (p.kind || 'photo') === kind).length;
+    if (kind === 'photo' && n >= 20) throw err('PHOTOS_LIMIT');
+    if (kind === 'video' && n >= 3) throw err('VIDEO_LIMIT');
+    const row = { id: uid(), event_id: eventId, member_id: memberId, path, thumb_path: thumbPath, width: w, height: h, kind, duration_s: duration, created_at: nowISO() };
     db.photos.push(row);
     return row.id;
   }),

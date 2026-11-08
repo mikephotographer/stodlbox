@@ -14,59 +14,142 @@ function loadImage(file) {
   });
 }
 
-function toJpeg(img, max, quality) {
-  const w0 = img.naturalWidth;
-  const h0 = img.naturalHeight;
+function toJpeg(src, w0, h0, max, quality) {
   const k = Math.min(1, max / Math.max(w0, h0));
-  const w = Math.round(w0 * k);
-  const h = Math.round(h0 * k);
+  const w = Math.max(1, Math.round(w0 * k));
+  const h = Math.max(1, Math.round(h0 * k));
   const c = document.createElement('canvas');
   c.width = w;
   c.height = h;
   const ctx = c.getContext('2d');
   ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, 0, 0, w, h);
+  if (src) ctx.drawImage(src, 0, 0, w, h);
+  else drawVideoPlaceholder(ctx, w, h);
   return new Promise((resolve, reject) => c.toBlob((b) => {
     c.width = 0; c.height = 0; // Speicher am iPhone sofort freigeben
     if (b) resolve({ blob: b, width: w, height: h }); else reject(new Error('NOT_IMAGE'));
   }, 'image/jpeg', quality));
 }
 
+/** Wenn das Handy kein Standbild aus dem Video liefert: dunkle Fläche mit Play-Dreieck */
+function drawVideoPlaceholder(ctx, w, h) {
+  ctx.fillStyle = '#262626';
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#f5c400';
+  const s = Math.min(w, h) * 0.22;
+  ctx.beginPath();
+  ctx.moveTo(w / 2 - s * 0.4, h / 2 - s / 2);
+  ctx.lineTo(w / 2 + s * 0.55, h / 2);
+  ctx.lineTo(w / 2 - s * 0.4, h / 2 + s / 2);
+  ctx.closePath();
+  ctx.fill();
+}
+
 const rid = () => crypto.randomUUID();
 
+export const MAX_VIDEO_MB = 50;
+export const isVideo = (f) => (f.type || '').startsWith('video/') || /\.(mov|mp4|m4v)$/i.test(f.name || '');
+const videoExt = (f) => (/quicktime/.test(f.type) || /\.mov$/i.test(f.name || '') ? 'mov' : 'mp4');
+const videoType = (f) => (videoExt(f) === 'mov' ? 'video/quicktime' : 'video/mp4');
+
+const fail = (code) => { const e = new Error(code); e.code = code; return e; };
+
+/** Dauer, Größe und ein Standbild aus dem Video (Standbild kann fehlen) */
+function probeVideo(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const v = document.createElement('video');
+    v.muted = true;
+    v.playsInline = true;
+    v.preload = 'auto';
+    let done = false;
+    const info = () => ({
+      duration: Number.isFinite(v.duration) ? Math.round(v.duration) : null,
+      width: v.videoWidth || null,
+      height: v.videoHeight || null,
+    });
+    const finish = (poster) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      const r = { ...info(), poster };
+      v.removeAttribute('src');
+      v.load();
+      URL.revokeObjectURL(url);
+      resolve(r);
+    };
+    const timer = setTimeout(() => finish(null), 8000);
+    v.onloadedmetadata = () => { v.currentTime = Math.min(0.5, (v.duration || 1) / 2); };
+    v.onseeked = async () => {
+      try {
+        const j = await toJpeg(v, v.videoWidth || 480, v.videoHeight || 270, THUMB, 0.72);
+        finish(j.blob);
+      } catch { finish(null); }
+    };
+    v.onerror = () => finish(null);
+    v.src = url;
+    v.load();
+  });
+}
+
+async function uploadOne(f, ticket, memberId) {
+  const id = rid();
+  const thumb = `${ticket.prefix}${id}_t.jpg`;
+  if (isVideo(f)) {
+    if (f.size > MAX_VIDEO_MB * 1024 * 1024) throw fail('VIDEO_TOO_BIG');
+    const v = await probeVideo(f);
+    const poster = v.poster || (await toJpeg(null, 480, 270, THUMB, 0.8)).blob;
+    const path = `${ticket.prefix}${id}.${videoExt(f)}`;
+    const blob = f.type ? f : new Blob([f], { type: videoType(f) });
+    await api.uploadPhotoFile(thumb, poster);
+    await api.uploadPhotoFile(path, blob);
+    await api.addMedia(memberId, path, thumb, v.width, v.height, 'video', v.duration);
+    return;
+  }
+  const { img, done } = await loadImage(f);
+  const big = await toJpeg(img, img.naturalWidth, img.naturalHeight, BIG, 0.82);
+  const small = await toJpeg(img, img.naturalWidth, img.naturalHeight, THUMB, 0.72);
+  done();
+  const path = `${ticket.prefix}${id}.jpg`;
+  await api.uploadPhotoFile(path, big.blob);
+  await api.uploadPhotoFile(thumb, small.blob);
+  await api.addMedia(memberId, path, thumb, big.width, big.height, 'photo', null);
+}
+
 /**
- * Lädt Dateien nacheinander hoch. onStep(done, total) für den Fortschritt.
+ * Lädt Fotos und Videos nacheinander hoch. onStep(done, total, current) für den Fortschritt.
  * Gibt { ok, failed, error } zurück.
  */
 export async function uploadPhotos(eventId, memberId, files, onStep = () => {}) {
-  const list = [...files].filter((f) => !f.type || f.type.startsWith('image/'));
+  const all = [...files].filter((f) => isVideo(f) || !f.type || f.type.startsWith('image/'));
   let ticket = await api.photoTicket(eventId, memberId);
-  const todo = list.slice(0, ticket.left);
+  // Zu große Videos sofort aussortieren, dann die Grenzen pro Person anwenden
+  const tooBig = all.filter((f) => isVideo(f) && f.size > MAX_VIDEO_MB * 1024 * 1024);
+  const allVideos = all.filter((f) => isVideo(f) && !tooBig.includes(f));
+  const allPhotos = all.filter((f) => !isVideo(f));
+  const videos = allVideos.slice(0, ticket.left_videos ?? 3);
+  const photos = allPhotos.slice(0, ticket.left);
+  const todo = [...photos, ...videos];
   let ok = 0;
-  let failed = list.length - todo.length;
-  let error = failed ? 'PHOTOS_LIMIT' : null;
+  let failed = all.length - todo.length;
+  let error = null;
+  if (tooBig.length) error = fail('VIDEO_TOO_BIG');
+  else if (videos.length < allVideos.length) error = fail('VIDEO_LIMIT');
+  else if (photos.length < allPhotos.length) error = fail('PHOTOS_LIMIT');
   let issued = Date.now();
-  onStep(0, todo.length);
+  let n = 0;
+  onStep(0, todo.length, todo[0]);
   for (const f of todo) {
     try {
       if (Date.now() - issued > 10 * 60 * 1000) { ticket = await api.photoTicket(eventId, memberId); issued = Date.now(); }
-      const { img, done } = await loadImage(f);
-      const big = await toJpeg(img, BIG, 0.82);
-      const small = await toJpeg(img, THUMB, 0.72);
-      done();
-      const id = rid();
-      const path = `${ticket.prefix}${id}.jpg`;
-      const thumb = `${ticket.prefix}${id}_t.jpg`;
-      await api.uploadPhotoFile(path, big.blob);
-      await api.uploadPhotoFile(thumb, small.blob);
-      await api.addPhoto(memberId, path, thumb, big.width, big.height);
+      await uploadOne(f, ticket, memberId);
       ok += 1;
     } catch (e) {
       failed += 1;
       error = error || e;
-      if (String((e && (e.code || e.message)) || '').includes('PHOTOS_LIMIT')) break;
     }
-    onStep(ok + failed - (list.length - todo.length), todo.length);
+    n += 1;
+    onStep(n, todo.length, todo[n]);
   }
   return { ok, failed, error };
 }
@@ -79,7 +162,9 @@ async function fileFor(p, i) {
   if (blobs.has(p.url)) return blobs.get(p.url);
   const res = await fetch(p.url);
   if (!res.ok) throw new Error('OFFLINE');
-  const f = new File([await res.blob()], `stodlbox-${(p.created_at || '').slice(0, 10)}-${i + 1}.jpg`, { type: 'image/jpeg' });
+  const ext = (p.path.match(/\.(jpg|mp4|mov)$/) || [, 'jpg'])[1];
+  const type = ext === 'mov' ? 'video/quicktime' : ext === 'mp4' ? 'video/mp4' : 'image/jpeg';
+  const f = new File([await res.blob()], `stodlbox-${(p.created_at || '').slice(0, 10)}-${i + 1}.${ext}`, { type });
   blobs.set(p.url, f);
   return f;
 }

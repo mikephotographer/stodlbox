@@ -5,9 +5,20 @@ import { icons } from '../icons.js';
 import { api } from '../api.js';
 import { toast, errText, confirmSheet } from '../ui.js';
 import { wdShort, dm } from '../format.js';
-import { uploadPhotos, savePhotos, prefetch } from '../photos.js';
+import { uploadPhotos, savePhotos, prefetch, MAX_VIDEO_MB } from '../photos.js';
 
 const untilText = (t) => `${wdShort(t)}, ${dm(t)}`;
+const isVid = (p) => p.kind === 'video';
+const dur = (s) => (s == null ? '' : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`);
+/** „3 Fotos und 1 Video“ */
+function countText(list) {
+  const v = list.filter(isVid).length;
+  const f = list.length - v;
+  const parts = [];
+  if (f) parts.push(`${f} ${f === 1 ? 'Foto' : 'Fotos'}`);
+  if (v) parts.push(`${v} ${v === 1 ? 'Video' : 'Videos'}`);
+  return parts.join(' und ');
+}
 
 export function photoSection(eventId, member, { onLoad } = {}) {
   let data = null;
@@ -19,21 +30,22 @@ export function photoSection(eventId, member, { onLoad } = {}) {
     if (!data) return '';
     const a = data.access;
     if (a === 'not_participant') {
-      return data.count ? html`<h2 class="section-title">Fotos</h2>
-        <p class="muted">${data.count} ${data.count === 1 ? 'Foto' : 'Fotos'}. Sehen und hochladen können sie nur die, die dabei waren.</p>` : '';
+      return data.count ? html`<h2 class="section-title">Fotos &amp; Videos</h2>
+        <p class="muted">${data.count} ${data.count === 1 ? 'Datei' : 'Dateien'}. Sehen und hochladen können sie nur die, die dabei waren.</p>` : '';
     }
     if (a !== 'yes') return '';
     const photos = data.photos;
-    return html`<div class="label-row"><h2 class="section-title" style="margin:0">Fotos</h2>
+    return html`<div class="label-row"><h2 class="section-title" style="margin:0">Fotos &amp; Videos</h2>
         ${photos.length ? html`<button class="link" data-ph="save-all">${icons.download(16)} Alle sichern (${photos.length})</button>` : ''}</div>
-      ${photos.length ? html`<ul class="ph-grid">${photos.map((p, i) => html`<li><button class="ph-thumb" data-ph="open" data-i="${i}" aria-label="Foto ${i + 1} von ${p.name || '?'} öffnen">
-          <img src="${p.thumb}" alt="" loading="lazy" decoding="async" width="160" height="160"></button></li>`)}</ul>`
-        : html`<p class="muted" style="margin:0 0 4px">Noch keine Fotos. Mach den Anfang!</p>`}
+      ${photos.length ? html`<ul class="ph-grid">${photos.map((p, i) => html`<li><button class="ph-thumb ${isVid(p) ? 'vid' : ''}" data-ph="open" data-i="${i}" aria-label="${isVid(p) ? 'Video' : 'Foto'} ${i + 1} von ${p.name || '?'} öffnen">
+          <img src="${p.thumb}" alt="" loading="lazy" decoding="async" width="160" height="160">
+          ${isVid(p) ? html`<span class="ph-play" aria-hidden="true">${icons.play(16)}${p.duration_s != null ? html`<span>${dur(p.duration_s)}</span>` : ''}</span>` : ''}</button></li>`)}</ul>`
+        : html`<p class="muted" style="margin:0 0 4px">Noch nichts da. Mach den Anfang!</p>`}
       ${progress
-        ? html`<div class="ph-progress" role="status"><span>Lade hoch … ${progress.done} von ${progress.total}</span><div class="tr-bar"><span style="transform:scaleX(${progress.total ? progress.done / progress.total : 0})"></span></div></div>`
-        : html`<label class="btn ghost ph-add">${icons.photo(20)} Fotos hinzufügen
-            <input type="file" accept="image/*" multiple class="sr-only" data-ph="pick"></label>`}
-      <p class="hint">Bleiben bis ${untilText(data.until)}, dann werden sie automatisch gelöscht. Höchstens 20 pro Person.</p>`;
+        ? html`<div class="ph-progress" role="status"><span>Lade hoch … ${progress.done} von ${progress.total}${progress.video ? ' · Video, kann etwas dauern' : ''}</span><div class="tr-bar"><span style="transform:scaleX(${progress.total ? progress.done / progress.total : 0})"></span></div></div>`
+        : html`<label class="btn ghost ph-add">${icons.photo(20)} Fotos &amp; Videos hinzufügen
+            <input type="file" accept="image/*,video/mp4,video/quicktime,video/*" multiple class="sr-only" data-ph="pick"></label>`}
+      <p class="hint">Bleiben bis ${untilText(data.until)}, dann werden sie automatisch gelöscht. Pro Person bis zu 20 Fotos und 3 kurze Videos (max. ${MAX_VIDEO_MB} MB, etwa 30 Sekunden in Full HD).</p>`;
   }
 
   function paint() {
@@ -60,9 +72,12 @@ export function photoSection(eventId, member, { onLoad } = {}) {
     progress = { done: 0, total: files.length };
     paint();
     try {
-      const r = await uploadPhotos(eventId, member.id, files, (done, total) => { progress = { done, total }; paint(); });
-      if (r.ok) toast(r.ok === 1 ? 'Foto hochgeladen' : `${r.ok} Fotos hochgeladen`);
-      if (r.failed) toast(`${r.failed} ${r.failed === 1 ? 'Foto' : 'Fotos'} nicht hochgeladen: ${errText(r.error)}`, 'error');
+      const r = await uploadPhotos(eventId, member.id, files, (done, total, next) => {
+        progress = { done, total, video: !!(next && /^video\//.test(next.type || '')) };
+        paint();
+      });
+      if (r.ok) toast(`${r.ok} ${r.ok === 1 ? 'Datei' : 'Dateien'} hochgeladen`);
+      if (r.failed) toast(`${r.failed} nicht hochgeladen: ${errText(r.error)}`, 'error');
     } catch (e) {
       toast(errText(e), 'error');
     }
@@ -82,7 +97,7 @@ export function photoSection(eventId, member, { onLoad } = {}) {
     try {
       const r = await savePhotos(photos);
       if (r === 'retry') toast('Bereit – bitte nochmal tippen');
-      if (r === 'downloaded') toast(photos.length === 1 ? 'Foto gespeichert' : `${photos.length} Fotos gespeichert`);
+      if (r === 'downloaded') toast(`${countText(photos)} gespeichert`);
     } catch (e) {
       toast(errText(e), 'error');
     } finally {
@@ -104,17 +119,25 @@ export function photoSection(eventId, member, { onLoad } = {}) {
           <button class="icon-btn" data-lb="close" aria-label="Schließen">${icons.close()}</button>
         </div>
         <div class="lb-stage">
-          <img src="${p.url}" alt="Foto ${i + 1}${p.name ? ` von ${p.name}` : ''}" ${p.width ? html`width="${p.width}" height="${p.height}"` : ''}>
+          ${isVid(p)
+            ? html`<video src="${p.url}" poster="${p.thumb}" controls playsinline preload="none" ${p.width ? html`width="${p.width}" height="${p.height}"` : ''}></video>`
+            : html`<img src="${p.url}" alt="Foto ${i + 1}${p.name ? ` von ${p.name}` : ''}" ${p.width ? html`width="${p.width}" height="${p.height}"` : ''}>`}
           ${data.photos.length > 1 ? html`<button class="lb-nav prev" data-lb="prev" aria-label="Vorheriges Foto">${icons.back(26)}</button>
             <button class="lb-nav next" data-lb="next" aria-label="Nächstes Foto">${icons.chevron(26)}</button>` : ''}
         </div>
         <div class="lb-actions">
           <button class="btn" data-lb="save">${icons.download(20)} Sichern</button>
-          ${canDelete ? html`<button class="link danger" data-lb="delete">Foto löschen</button>` : ''}
+          ${canDelete ? html`<button class="link danger" data-lb="delete">${isVid(p) ? 'Video' : 'Foto'} löschen</button>` : ''}
         </div>`);
-      prefetch([p]); // damit „Sichern“ am iPhone direkt das Teilen-Menü öffnet
+      // Fotos vorladen, damit „Sichern“ am iPhone direkt das Teilen-Menü öffnet. Videos nicht (Datenvolumen).
+      if (!isVid(p)) prefetch([p]);
     };
-    const go = (d) => { i = (i + d + data.photos.length) % data.photos.length; draw(); };
+    const go = (d) => {
+      const v = dlg.querySelector('video');
+      if (v) v.pause();
+      i = (i + d + data.photos.length) % data.photos.length;
+      draw();
+    };
     dlg.addEventListener('click', async (e) => {
       const b = e.target.closest('[data-lb]');
       if (!b) return;
@@ -125,11 +148,12 @@ export function photoSection(eventId, member, { onLoad } = {}) {
       if (act === 'save') await save([data.photos[i]], b);
       if (act === 'delete') {
         const p = data.photos[i];
-        if (!(await confirmSheet('Foto löschen', 'Das Foto für alle löschen?', 'Löschen', true))) return;
+        const what = isVid(p) ? 'Video' : 'Foto';
+        if (!(await confirmSheet(`${what} löschen`, `Das ${what} für alle löschen?`, 'Löschen', true))) return;
         try {
           await api.deletePhoto(member && member.id, p.id);
           data.photos.splice(i, 1);
-          toast('Foto gelöscht');
+          toast(`${what} gelöscht`);
           if (!data.photos.length) { dlg.close(); } else { i = Math.min(i, data.photos.length - 1); draw(); }
           paint();
         } catch (err) { toast(errText(err), 'error'); }
@@ -141,7 +165,7 @@ export function photoSection(eventId, member, { onLoad } = {}) {
     });
     // Wischen
     let x0 = null;
-    dlg.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; }, { passive: true });
+    dlg.addEventListener('touchstart', (e) => { x0 = e.target.closest('video') ? null : e.touches[0].clientX; }, { passive: true });
     dlg.addEventListener('touchend', (e) => {
       if (x0 == null || data.photos.length < 2) return;
       const dx = e.changedTouches[0].clientX - x0;
@@ -161,11 +185,11 @@ export function photoSection(eventId, member, { onLoad } = {}) {
 export function photoHints(list) {
   if (!list || !list.length) return '';
   return html`<section class="section">
-    <h2 class="section-title">Fotos</h2>
+    <h2 class="section-title">Fotos &amp; Videos</h2>
     <ul class="list">${list.map((e) => html`<li><a class="list-item" href="#/t/${e.id}">
       <span class="ph-ico">${icons.photo(22)}</span>
       <span class="grow"><span class="t">${e.title}</span>
-        <span class="m">${wdShort(e.starts_at)}, ${dm(e.starts_at)} · ${e.count ? `${e.count} ${e.count === 1 ? 'Foto' : 'Fotos'}` : 'noch keine Fotos'} · bis ${untilText(e.until)}</span></span>
+        <span class="m">${wdShort(e.starts_at)}, ${dm(e.starts_at)} · ${e.count ? `${e.count} ${e.count === 1 ? 'Datei' : 'Dateien'}` : 'noch nichts hochgeladen'} · bis ${untilText(e.until)}</span></span>
       <span class="chev">${icons.chevron()}</span></a></li>`)}</ul>
   </section>`;
 }

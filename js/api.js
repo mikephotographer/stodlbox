@@ -56,9 +56,9 @@ const real = {
   photoTicket: (eventId, memberId) => rpc('photo_ticket', { p_code: code(), p_event_id: eventId, p_member_id: memberId }),
   async uploadPhotoFile(path, blob) {
     const c = await client();
-    check(await c.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '604800', upsert: false }));
+    check(await c.storage.from('photos').upload(path, blob, { contentType: blob.type || 'image/jpeg', cacheControl: '604800', upsert: false }));
   },
-  addPhoto: (memberId, path, thumbPath, w, h) => rpc('add_photo', { p_code: code(), p_member_id: memberId, p_path: path, p_thumb_path: thumbPath, p_width: w, p_height: h }),
+  addMedia: (memberId, path, thumbPath, w, h, kind, duration) => rpc('add_media', { p_code: code(), p_member_id: memberId, p_path: path, p_thumb_path: thumbPath, p_width: w, p_height: h, p_kind: kind, p_duration: duration }),
   deletePhoto: (memberId, photoId) => rpc('delete_photo', { p_code: code(), p_member_id: memberId || null, p_photo_id: photoId }),
   recentPhotoEvents: (memberId) => rpc('recent_photo_events', { p_code: code(), p_member_id: memberId }),
 

@@ -475,6 +475,48 @@ begin
   raise notice 'OK 12: Admin automatisch dabei';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 13) Videos (setzt Migration 009 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare ev uuid; a uuid; tk jsonb; p text; r jsonb; i int; vid text;
+begin
+  perform pg_temp.as_system();
+  insert into members (name) values ('Video Vera') returning id into a;
+  insert into events (title, starts_at) values ('Video-Training', now() - interval '1 hour') returning id into ev;
+  insert into rsvps (event_id, member_id, status) values (ev, a, 'yes');
+  perform pg_temp.as_anon();
+  tk := photo_ticket('TEST-CODE', ev, a);
+  p := tk->>'prefix';
+  assert (tk->>'left_videos')::int = 3, 'Anfangs 3 Videos frei: ' || tk::text;
+  assert photo_path_ok(p || gen_random_uuid() || '.mov'), '.mov sollte erlaubt sein';
+  assert photo_path_ok(p || gen_random_uuid() || '.mp4'), '.mp4 sollte erlaubt sein';
+  assert not photo_path_ok(p || gen_random_uuid() || '.exe'), '.exe darf nicht';
+  for i in 1..3 loop
+    vid := gen_random_uuid()::text;
+    perform add_media('TEST-CODE', a, p || vid || '.mov', p || vid || '_t.jpg', 1920, 1080, 'video', 20 + i);
+  end loop;
+  begin
+    vid := gen_random_uuid()::text;
+    perform add_media('TEST-CODE', a, p || vid || '.mp4', p || vid || '_t.jpg', 1920, 1080, 'video', 5);
+    raise exception 'Viertes Video hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%VIDEO_LIMIT%', sqlerrm; end;
+  begin
+    vid := gen_random_uuid()::text;
+    perform add_media('TEST-CODE', a, p || vid || '.jpg', p || vid || '_t.jpg', 1, 1, 'video', 5);
+    raise exception 'Video mit .jpg hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%BAD_TICKET%', sqlerrm; end;
+  -- Fotos gehen weiter, auch über die alte Funktion
+  vid := gen_random_uuid()::text;
+  perform add_photo('TEST-CODE', a, p || vid || '.jpg', p || vid || '_t.jpg', 2000, 1500);
+  r := get_event_photos('TEST-CODE', ev, a);
+  assert jsonb_array_length(r->'photos') = 4, 'Drei Videos + ein Foto: ' || r::text;
+  assert (select count(*) from jsonb_array_elements(r->'photos') x where x->>'kind' = 'video' and (x->>'duration_s')::int > 20) = 3, 'Videos mit Dauer';
+  tk := photo_ticket('TEST-CODE', ev, a);
+  assert (tk->>'left_videos')::int = 0 and (tk->>'left')::int = 19, 'Restplätze stimmen: ' || tk::text;
+  raise notice 'OK 13: Videos';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

@@ -171,7 +171,7 @@ function photoCta(e) {
   if (e.status === 'cancelled' || e.my_rsvp !== 'yes') return '';
   const start = Date.parse(e.starts_at);
   if (Date.now() < start || Date.now() >= start + 7 * 864e5) return '';
-  return html`<a class="btn ph-cta" href="#/t/${e.id}?fotos=1">${icons.photo(22)} Fotos hochladen &amp; ansehen</a>`;
+  return html`<a class="btn ph-cta" href="#/t/${e.id}?fotos=1">${icons.photo(22)} Fotos &amp; Videos</a>`;
 }
 
 export function eventActions(e) {
