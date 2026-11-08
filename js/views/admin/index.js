@@ -18,7 +18,7 @@ const TABS = [
   ['', 'Termine', icons.list],
   ['umfragen', 'Umfragen', icons.vote],
   ['workouts', 'Workouts', icons.doc],
-  ['equipment', 'Equipment', icons.bag],
+  ['timer', 'Timer', icons.timer],
   ['mehr', 'Mehr', icons.more],
 ];
 
@@ -278,6 +278,7 @@ function renderMore(root) {
   tabbar('mehr');
   mount(root, html`${adminHead('Mehr')}
     <ul class="list">
+      <li><a class="list-item" href="#/admin/equipment"><span class="grow"><span class="t">Equipment</span><span class="m">Was die Leute mitbringen sollen, je nach Workout</span></span><span class="chev">${icons.chevron()}</span></a></li>
       <li><a class="list-item" href="#/admin/leute"><span class="grow"><span class="t">Leute</span><span class="m">Namen umbenennen, zusammenführen, deaktivieren</span></span><span class="chev">${icons.chevron()}</span></a></li>
       <li><a class="list-item" href="#/admin/einstellungen"><span class="grow"><span class="t">Einstellungen</span><span class="m">Gruppen-Code, Einladungslink, Standardwerte</span></span><span class="chev">${icons.chevron()}</span></a></li>
       <li><a class="list-item" href="admin/"><span class="grow"><span class="t">Admin als App installieren</span><span class="m">Home-Bildschirm-App, die direkt im Admin startet</span></span><span class="chev">${icons.chevron()}</span></a></li>
@@ -328,7 +329,12 @@ export async function renderAdmin(root, sub) {
   if (a === 'umfrage' && b && c === 'uebernehmen' && d) { tabbar('umfragen'); return renderEventForm(root, null, { fromPoll: b, optionId: d }); }
   if (a === 'umfrage' && b) { tabbar('umfragen'); return renderPollForm(root, b === 'new' ? null : b); }
   if (a === 'workouts' || a === 'vorlagen') { tabbar('workouts'); return renderWorkouts(root); }
-  if (a === 'equipment') { tabbar('equipment'); return renderEquipment(root); }
+  if (a === 'equipment') { tabbar('mehr'); return renderEquipment(root); }
+  if (a === 'timer') {
+    tabbar('timer');
+    const { renderTimer } = await import('../timer.js');
+    return renderTimer(root, { head: () => adminHead('Timer') });
+  }
   if (a === 'mehr') return renderMore(root);
   if (a === 'leute') { tabbar('mehr'); return renderPeople(root); }
   if (a === 'einstellungen') { tabbar('mehr'); return renderSettings(root); }

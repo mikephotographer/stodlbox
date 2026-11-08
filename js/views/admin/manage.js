@@ -140,17 +140,17 @@ function workoutSheet(w, known, presetTag) {
 // ---------------------------------------------------------------- Equipment
 export async function renderEquipment(root) {
   document.title = 'STODLBOX · Equipment';
-  mount(root, html`${adminHead('Equipment', { plus: 'new' })}<div class="skeleton" style="height:200px" aria-busy="true"></div>`);
+  mount(root, html`${adminHead('Equipment', { back: '#/admin/mehr', plus: 'new' })}<div class="skeleton" style="height:200px" aria-busy="true"></div>`);
   let rules = [];
   let testText = '5 Runden:\n400 m Run\n10 Toes-to-Bar\n50 DU\nwenn du magst: 10 Burpees';
   const load = async () => {
-    try { rules = await api.listRules(); return true; } catch (e) { mount(root, html`${adminHead('Equipment')}<p class="err">${errText(e)}</p>`); return false; }
+    try { rules = await api.listRules(); return true; } catch (e) { mount(root, html`${adminHead('Equipment', { back: '#/admin/mehr' })}<p class="err">${errText(e)}</p>`); return false; }
   };
   const testResult = () => {
     const m = matchEquipment(testText, rules);
     return m.length ? `Einpacken: ${equipmentSentence(m)}` : 'Kein Tipp.';
   };
-  const draw = () => mount(root, html`${adminHead('Equipment', { plus: 'new' })}
+  const draw = () => mount(root, html`${adminHead('Equipment', { back: '#/admin/mehr', plus: 'new' })}
     <p class="hint" style="margin-bottom:12px">Kommt ein Keyword im Workout vor, erscheint der Tipp als gelbes Banner. Treffer nur als ganzes Wort („run“ trifft nicht „Runden“).</p>
     ${rules.map((r) => html`<div class="rule ${r.active ? '' : 'off'}">
       <div class="row" style="flex-wrap:nowrap">

@@ -98,11 +98,12 @@ const fieldValue = (c, key) => {
   return clock(c[key]);
 };
 
-function setupView(cfg, source, half) {
+function setupView(cfg, source, half, head = topbar) {
   const m = cfg.mode;
   const total = mainDuration(cfg);
-  return html`${topbar()}
-    <h1 class="page-title" style="margin-bottom:4px">Timer</h1>
+  const own = head !== topbar;
+  return html`${head()}
+    ${own ? '' : html`<h1 class="page-title" style="margin-bottom:4px">Timer</h1>`}
     ${source ? html`<p class="muted" style="margin:0">Eingestellt nach „${source}“. Passt was nicht, einfach ändern.</p>` : ''}
     <main id="main">
       <div class="seg" role="group" aria-label="Art">
@@ -190,13 +191,13 @@ function resultView(run) {
 
 // ------------------------------------------------------------ Seite
 
-export async function renderTimer(root) {
+export async function renderTimer(root, { head = topbar } = {}) {
   document.title = 'STODLBOX · Timer';
   const prefs = state.timer;
   const q = route().query;
   let source = q.get('n') || '';
   let cfg = fromQuery(q) || normalize(prefs[prefs.last] || DEFAULTS[prefs.last] || DEFAULTS.fortime);
-  if (q.get('m')) history.replaceState(null, '', location.pathname + location.search + '#/timer');
+  if (q.get('m')) history.replaceState(null, '', location.pathname + location.search + '#' + route().path);
 
   let timer = null;
   let last = { index: -1, sec: -1, half: -1 };
@@ -206,7 +207,7 @@ export async function renderTimer(root) {
     state.timer = p;
   };
 
-  const drawSetup = () => mount(root, setupView(cfg, source, state.timer.half !== false));
+  const drawSetup = () => mount(root, setupView(cfg, source, state.timer.half !== false, head));
 
   const stopLoop = () => { if (timer) clearInterval(timer); timer = null; keepAwake(false); };
 
