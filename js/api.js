@@ -46,6 +46,22 @@ const real = {
   searchWorkouts: (q, tag) => rpc('search_workouts', { p_code: code(), p_query: q || '', p_tag: tag || null }),
   listWorkouts: () => rpc('list_workouts', { p_code: code() }),
 
+  // ---------- Ergebnisse ----------
+  getResults: (eventId, memberId) => rpc('get_results', { p_code: code(), p_event_id: eventId, p_member_id: memberId || null }),
+  workoutResults: (workout, memberId) => rpc('workout_results', { p_code: code(), p_workout: workout, p_member_id: memberId || null }),
+  saveResult: (eventId, memberId, r) => rpc('save_result', { p_code: code(), p_event_id: eventId, p_member_id: memberId, p_kind: r.kind, p_value: r.value, p_text: r.text, p_scale: r.scale, p_note: r.note || null }),
+  deleteResult: (eventId, memberId) => rpc('delete_result', { p_code: code(), p_event_id: eventId, p_member_id: memberId }),
+
+  // ---------- Kalender-Abo ----------
+  /** webcal-Adresse für alle Trainings (mit Haken bei eigenen Zusagen) */
+  async calendarFeed(memberId) {
+    const t = await rpc('calendar_token', { p_code: code() });
+    const q = new URLSearchParams({ t, apikey: SUPABASE_ANON_KEY });
+    if (memberId) q.set('m', memberId);
+    const https = `${SUPABASE_URL}/rest/v1/rpc/calendar?${q}`;
+    return { https, webcal: https.replace(/^https?:/, 'webcal:') };
+  },
+
   // ---------- Fotos ----------
   photoUrl: (path) => `${SUPABASE_URL}/storage/v1/object/public/photos/${path}`,
   async getEventPhotos(eventId, memberId) {

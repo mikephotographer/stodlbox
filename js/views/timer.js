@@ -183,10 +183,26 @@ function resultView(run) {
       ${splits.length ? html`<ol class="tr-splits">${splits.map((s) => html`<li><span>Runde ${s.n}</span><span class="num">${clock(s.d, { up: true })}</span><span class="num muted">${clock(s.t, { up: true })}</span></li>`)}</ol>` : ''}
     </div>
     <div class="tr-actions">
-      <button class="btn" data-action="again">Nochmal</button>
-      <button class="btn ghost" data-action="close">Schließen</button>
+      ${run.eventId ? html`<a class="btn" data-action="result" href="#/t/${run.eventId}?${resultQuery(run)}">${icons.trophy(20)} Ergebnis eintragen</a>` : ''}
+      <div class="${run.eventId ? 'tr-row' : 'tr-col'}">
+        <button class="btn ${run.eventId ? 'ghost' : ''}" data-action="again">Nochmal</button>
+        <button class="btn ghost" data-action="close">Schließen</button>
+      </div>
     </div>
   </div>`;
+}
+
+/** Ergebnis für das Eintragen beim Termin: Art und Wert aus dem Timer */
+function resultQuery(run) {
+  const c = run.cfg;
+  const q = new URLSearchParams({ ergebnis: '1' });
+  if (c.mode === 'fortime') {
+    if (run.finishedAt != null && !run.stopped) { q.set('k', 'time'); q.set('v', Math.floor(run.finishedAt + 1e-6)); } else if (run.finishedAt == null) q.set('k', 'cap');
+  } else if (c.mode === 'amrap') {
+    q.set('k', 'rounds');
+    q.set('v', (run.laps || []).length * 1000);
+  } else q.set('k', 'reps');
+  return q.toString();
 }
 
 // ------------------------------------------------------------ Seite
@@ -196,6 +212,8 @@ export async function renderTimer(root, { head = topbar } = {}) {
   const prefs = state.timer;
   const q = route().query;
   let source = q.get('n') || '';
+  // Vom Termin geöffnet: am Ende „Ergebnis eintragen“ anbieten
+  let eventId = /^[\w-]{36}$/.test(q.get('e') || '') ? q.get('e') : null;
   let cfg = fromQuery(q) || normalize(prefs[prefs.last] || DEFAULTS[prefs.last] || DEFAULTS.fortime);
   if (q.get('m')) history.replaceState(null, '', location.pathname + location.search + '#' + route().path);
 
@@ -298,7 +316,7 @@ export async function renderTimer(root, { head = topbar } = {}) {
   const begin = () => {
     unlockAudio();
     saveCfg();
-    state.timerRun = { cfg, name: source, half: state.timer.half !== false, start: now(), pausedAt: null, pausedTotal: 0, laps: [] };
+    state.timerRun = { cfg, name: source, eventId, half: state.timer.half !== false, start: now(), pausedAt: null, pausedTotal: 0, laps: [] };
     startLoop();
   };
 
@@ -333,6 +351,7 @@ export async function renderTimer(root, { head = topbar } = {}) {
       const m = modeBtn.dataset.mode;
       cfg = normalize(state.timer[m] || DEFAULTS[m]);
       source = '';
+      eventId = null;
       drawSetup();
       return;
     }
@@ -404,9 +423,14 @@ export async function renderTimer(root, { head = topbar } = {}) {
       case 'again': {
         cfg = run ? run.cfg : cfg;
         source = run ? run.name : source;
+        eventId = run ? run.eventId || null : eventId;
         begin();
         break;
       }
+      case 'result':
+        // Zum Termin: Timer zurücksetzen, der Link führt weiter
+        state.timerRun = null;
+        break;
       case 'close': {
         cfg = run ? run.cfg : cfg;
         state.timerRun = null;

@@ -45,16 +45,16 @@ export function capacityBar(e) {
  * Workout-Text. compact: nur die ersten Zeilen, Rest aufklappbar.
  */
 /** Link „Timer“ mit Einstellung aus dem Workout-Text (oder leer, wenn nichts erkannt wird) */
-export function timerLink(text, name = '') {
+export function timerLink(text, name = '', eventId = null) {
   const c = detect(text);
   if (!c) return '';
-  const q = toQuery(c) + (name ? '&n=' + encodeURIComponent(name) : '');
+  const q = toQuery(c) + (name ? '&n=' + encodeURIComponent(name) : '') + (eventId ? '&e=' + eventId : '');
   return html`<a class="timer-link" href="#/timer?${q}">${icons.timer(16)}<span>${describe(c)}</span></a>`;
 }
 
-export function wodBox(text, { title = 'Workout', aside = '', compact = false, timer = '' } = {}) {
+export function wodBox(text, { title = 'Workout', aside = '', compact = false, timer = '', eventId = null } = {}) {
   const t = text ? String(text).trim() : '';
-  const side = timer && t ? timerLink(t, timer) : (aside ? html`<span class="label">${aside}</span>` : '');
+  const side = timer && t ? timerLink(t, timer, eventId) : (aside ? html`<span class="label">${aside}</span>` : '');
   const head = html`<div class="wod-head"><span class="label">${title}</span>${side}</div>`;
   if (!t) return html`<div class="wod">${head}<div class="wod-body empty">Workout folgt.</div></div>`;
   const lines = t.split('\n');
@@ -166,13 +166,22 @@ export function peopleList(e, meId) {
   </div>`;
 }
 
-/** Ab Trainingsbeginn bis 7 Tage danach: Knopf zu den Fotos für alle, die dabei waren */
-function photoCta(e) {
+/**
+ * Ab Trainingsbeginn bis 7 Tage danach, für alle, die dabei waren: Ergebnis eintragen und Fotos.
+ * Gelb ist nur das Ergebnis, solange es fehlt. Danach steht dort das eigene Ergebnis.
+ */
+function afterCtas(e) {
   if (e.status === 'cancelled' || e.my_rsvp !== 'yes') return '';
   const start = Date.parse(e.starts_at);
   if (Date.now() < start || Date.now() >= start + 7 * 864e5) return '';
-  return html`<a class="btn ph-cta" href="#/t/${e.id}?fotos=1">${icons.photo(22)} Fotos &amp; Videos</a>`;
+  const res = e.my_result
+    ? html`<a class="btn ghost" href="#/t/${e.id}?ergebnis=1" aria-label="Dein Ergebnis ${e.my_result}, ändern">${icons.trophy(20)}<span class="num">${e.my_result}</span></a>`
+    : html`<a class="btn" href="#/t/${e.id}?ergebnis=1">${icons.trophy(20)} Ergebnis</a>`;
+  return html`<div class="after-ctas">${res}<a class="btn ghost" href="#/t/${e.id}?fotos=1">${icons.photo(20)} Fotos</a></div>`;
 }
+
+/** Timer-Link bekommt den Termin mit, wenn das Training bald beginnt oder läuft (für „Ergebnis eintragen“) */
+const timerEvent = (e) => (e.status !== 'cancelled' && Date.parse(e.starts_at) - Date.now() < 3 * 3600e3 ? e.id : null);
 
 export function eventActions(e) {
   const photo = safeUrl(e.media_url);
@@ -208,13 +217,13 @@ export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, 
       </header>
       ${cancelled ? '' : capacityBar(e)}
       ${rsvpBlock(e)}
-      ${photoCta(e)}
+      ${afterCtas(e)}
     </div>
     <div class="hero-body">
     ${peopleList(e, meId)}
     ${openVote
       ? voteBlock(e, rules, { canVote })
-      : html`${wodBox(e.workout, { compact, timer: e.title })}${equipBanner(e.workout, rules)}`}
+      : html`${wodBox(e.workout, { compact, timer: e.title, eventId: timerEvent(e) })}${equipBanner(e.workout, rules)}`}
     ${e.note ? html`<p class="note">${e.note}</p>` : ''}
     ${eventActions(e)}
     </div>

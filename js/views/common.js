@@ -63,6 +63,30 @@ function applyOptimisticPoll(poll, me, optionId) {
   return () => Object.assign(poll, prev);
 }
 
+/** Kalender-Abo: alle Trainings landen automatisch im Handy-Kalender und bleiben aktuell */
+export async function subscribeSheet() {
+  let feed;
+  try {
+    feed = await api.calendarFeed(state.member && state.member.id);
+  } catch (err) {
+    if (!handleAuthError(err)) toast(errText(err), 'error');
+    return;
+  }
+  if (!feed) { toast('Im Demo gibt es kein Kalender-Abo.'); return; }
+  const google = 'https://calendar.google.com/calendar/r?cid=' + encodeURIComponent(feed.webcal);
+  await sheet('Kalender-Abo', html`<p style="margin:0 0 16px">Alle Trainings erscheinen in deinem Kalender und bleiben aktuell: neue Termine, Änderungen und Absagen kommen von selbst nach. Wo du dabei bist, steht ein Haken vor dem Titel.</p>
+    <div class="menu">
+      <a href="${feed.webcal}" data-close>${icons.calendar(22)} iPhone / Mac / Outlook</a>
+      <a href="${google}" target="_blank" rel="noopener noreferrer" data-close>${icons.calendar(22)} Google Kalender</a>
+      <button data-sub="copy">${icons.copy(22)} Adresse kopieren</button>
+    </div>
+    <p class="hint">Am iPhone fragt der Kalender nach, dann auf „Abonnieren“ tippen. Der Kalender schaut etwa jede Stunde nach Neuem.</p>`, (dlg, close) => {
+    dlg.querySelector('[data-sub="copy"]').addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(feed.https); toast('Adresse kopiert'); close(); } catch { toast('Kopieren ging nicht', 'error'); }
+    });
+  });
+}
+
 /**
  * Verdrahtet alle Klicks im Container.
  * ctx.findEvent(id), ctx.findPoll(id), ctx.rerender(), ctx.reload()
@@ -132,11 +156,17 @@ export function bindFriendActions(root, ctx) {
         await sheet('In Kalender eintragen', html`<div class="menu">
           <button data-cal="ics">${icons.download(22)} Apple / Outlook (.ics)</button>
           <a href="${googleLink(e, link)}" target="_blank" rel="noopener noreferrer" data-close>${icons.calendar(22)} Google Kalender</a>
+          <button data-cal="sub">${icons.refresh(22)} Alle Trainings abonnieren</button>
         </div>`, (dlg, close) => {
           dlg.querySelector('[data-cal="ics"]').addEventListener('click', () => { downloadIcs(e, link); close(); });
+          dlg.querySelector('[data-cal="sub"]').addEventListener('click', () => { close(); subscribeSheet(); });
         });
         return;
       }
+
+      case 'subscribe':
+        await subscribeSheet();
+        return;
 
       case 'share': {
         if (!e) return;

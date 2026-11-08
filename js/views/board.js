@@ -62,6 +62,7 @@ function view(d) {
       ${a2hsTip()}
     </main>
     <footer class="footer">
+      <button class="link muted" data-action="subscribe">${icons.calendar(16)} Kalender-Abo</button>
       <a href="#/admin">Admin</a>
     </footer>`;
 }

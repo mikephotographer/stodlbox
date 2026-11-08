@@ -546,6 +546,95 @@ begin
   raise notice 'OK 14: Fotos im Original';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 15) Ergebnisse (setzt Migration 011 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare ev uuid; ev2 uuid; fut uuid; a uuid; b uuid; r jsonb;
+begin
+  perform pg_temp.as_system();
+  insert into members (name) values ('Ergebnis Erna') returning id into a;
+  insert into members (name) values ('Ergebnis Emil') returning id into b;
+  insert into events (title, starts_at, workout) values ('Fran alt', now() - interval '30 days', 'For Time, 21-15-9:
+Thruster
+Pull-Ups') returning id into ev2;
+  insert into events (title, starts_at, workout) values ('Fran', now() - interval '1 hour', 'for time,  21-15-9:
+thruster
+pull-ups') returning id into ev;
+  insert into events (title, starts_at, workout) values ('Später', now() + interval '1 day', 'x') returning id into fut;
+  perform pg_temp.as_anon();
+  perform save_result('TEST-CODE', ev2, a, 'time', 400, '6:40', 'scaled', null);
+  r := save_result('TEST-CODE', ev, a, 'time', 355, '5:55', 'rx', 'mit 30 kg');
+  assert jsonb_array_length(r->'list') = 1 and (r->>'open')::boolean, 'Eigenes Ergebnis: ' || r::text;
+  assert jsonb_array_length(r->'history') = 1 and r->'history'->0->>'text' = '6:40', 'Verlauf beim gleichen Workout: ' || r::text;
+  -- nochmal speichern ersetzt
+  r := save_result('TEST-CODE', ev, a, 'time', 350, '5:50', 'rx', '');
+  assert jsonb_array_length(r->'list') = 1 and r->'list'->0->>'text' = '5:50' and r->'list'->0->'note' = 'null'::jsonb, 'Ersetzt: ' || r::text;
+  perform save_result('TEST-CODE', ev, b, 'other', 999, 'Nicht fertig', 'beginner', null);
+  r := get_results('TEST-CODE', ev, b);
+  assert jsonb_array_length(r->'list') = 2, 'Zwei Ergebnisse';
+  assert (select x->'value' from jsonb_array_elements(r->'list') x where x->>'kind' = 'other') = 'null'::jsonb, 'other ohne Wert';
+  assert (event_json(ev, a)->>'result_count')::int = 2 and event_json(ev, a)->>'my_result' = '5:50', 'event_json: ' || event_json(ev, a)::text;
+  assert jsonb_array_length(workout_results('TEST-CODE', 'For Time, 21-15-9:
+Thruster
+Pull-Ups', a)) = 3, 'Workout-Seite findet alle drei';
+  begin
+    perform save_result('TEST-CODE', fut, a, 'time', 1, '0:01', 'rx', null);
+    raise exception 'Ergebnis vor Beginn hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%RESULTS_EARLY%', sqlerrm; end;
+  begin
+    perform save_result('TEST-CODE', ev, a, 'time', null, '5:00', 'rx', null);
+    raise exception 'Zeit ohne Wert hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%INVALID%', sqlerrm; end;
+  begin
+    perform save_result('TEST-CODE', ev, a, 'time', 300, '5:00', 'pro', null);
+    raise exception 'Unbekannte Stufe hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%INVALID%', sqlerrm; end;
+  begin
+    perform save_result('FALSCH', ev, a, 'time', 300, '5:00', 'rx', null);
+    raise exception 'Falscher Code hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%BAD_CODE%', sqlerrm; end;
+  r := delete_result('TEST-CODE', ev, a);
+  assert jsonb_array_length(r->'list') = 1, 'Gelöscht';
+  raise notice 'OK 15: Ergebnisse';
+end $$;
+
+-- ---------------------------------------------------------------
+-- 16) Kalender-Abo (setzt Migration 011 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare ev uuid; ev2 uuid; a uuid; tok uuid; ics text;
+begin
+  perform pg_temp.as_system();
+  insert into members (name) values ('Kalender Karl') returning id into a;
+  insert into events (title, starts_at, workout, note) values ('Kalender, Test; Eins', now() + interval '2 days', 'AMRAP 20:
+5 Pull-Ups, 10 Push-Ups', 'Ein sehr langer Hinweis, der deutlich über sechzig Zeichen hinausgeht und deshalb gefaltet werden muss.') returning id into ev;
+  insert into events (title, starts_at, status) values ('Abgesagt-Test', now() + interval '3 days', 'cancelled') returning id into ev2;
+  insert into rsvps (event_id, member_id, status) values (ev, a, 'yes');
+  perform pg_temp.as_anon();
+  tok := calendar_token('TEST-CODE');
+  assert tok is not null, 'Kalender-Schlüssel';
+  begin
+    perform calendar_token('FALSCH');
+    raise exception 'Schlüssel ohne Code hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%BAD_CODE%', sqlerrm; end;
+  begin
+    perform calendar(gen_random_uuid());
+    raise exception 'Falscher Schlüssel hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%BAD_TOKEN%', sqlerrm; end;
+  ics := calendar(tok, a);
+  assert ics like 'BEGIN:VCALENDAR' || E'\r\n' || 'VERSION:2.0%', 'Kopf: ' || left(ics, 80);
+  assert ics like '%END:VCALENDAR' || E'\r\n', 'Ende';
+  assert ics like '%UID:' || ev || '@stodlbox%', 'Termin drin';
+  assert strpos(ics, 'SUMMARY:✓ Stodlbox: Kalender\, Test\; Eins') > 0, 'Haken + Escaping: ' || ics;
+  assert ics like '%Abgesagt: Stodlbox: Abgesagt-Test%' and ics like '%STATUS:CANCELLED%', 'Abgesagt markiert';
+  assert ics like '%' || E'\r\n ' || '%', 'Lange Zeilen gefaltet';
+  assert (select count(*) from regexp_split_to_table(ics, E'\r\n') l where char_length(l) > 61) = 0, 'Keine Zeile zu lang';
+  ics := calendar(tok);
+  assert ics not like '%✓%', 'Ohne m kein Haken';
+  raise notice 'OK 16: Kalender-Abo';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

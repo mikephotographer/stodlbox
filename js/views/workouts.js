@@ -7,6 +7,9 @@ import { route, navigate } from '../router.js';
 import { tagCounts, hasTag, matchesQuery, filterChips, preview } from '../components/workouts.js';
 import { topbar, handleAuthError } from './common.js';
 import { timerLink } from '../components/event.js';
+import { state } from '../state.js';
+import { SCALES, bestPerPerson, best } from '../results.js';
+import { wdShort, dm } from '../format.js';
 
 // Bleibt zwischen Liste und Detail erhalten: Daten, Suche, Filter, Scroll-Position.
 let list = null;
@@ -107,5 +110,29 @@ export async function renderWorkout(root, id) {
       ${w.tags && w.tags.length ? html`<div class="chips wrap">${w.tags.map((t) => html`<a class="chip" href="#/workouts?g=${encodeURIComponent(t)}">${t}</a>`)}</div>` : ''}
       <div class="wod"><div class="wod-head"><span class="label">Workout</span>${timerLink(w.workout, w.title)}</div><div class="wod-body">${w.workout}</div></div>
       ${w.notes ? html`<p class="wo-notes">${w.notes}</p>` : ''}
+      <section class="section" id="wo-results" hidden></section>
     </main>`);
+  loadBests(w);
+}
+
+/** Bestwerte aus früheren Trainings mit genau diesem Workout */
+async function loadBests(w) {
+  const me = state.member;
+  let all;
+  try { all = await api.workoutResults(w.workout, me && me.id); } catch { return; }
+  const el = document.getElementById('wo-results');
+  if (!el || !all || !all.length) return;
+  const top = bestPerPerson(all).slice(0, 10);
+  const mine = all.filter((r) => r.mine);
+  const myBest = best(mine);
+  mount(el, html`<h2 class="section-title">Bestwerte</h2>
+    ${top.length ? html`<ol class="res-list">${top.map((r) => html`<li class="res-row ${r.mine ? 'mine' : ''}">
+      <span class="res-place num">${r.place}</span>
+      <span class="res-who"><span class="res-name">${r.name || '?'}</span> <span class="res-scale">${SCALES[r.scale]}</span>
+        <small>${wdShort(r.starts_at)}, ${dm(r.starts_at)}</small></span>
+      <span class="res-score num">${r.text}</span></li>`)}</ol>` : ''}
+    ${mine.length ? html`<div class="res-hist"><p class="label">Dein Verlauf</p><ul>${mine.map((r) => html`<li>
+        <span class="d">${wdShort(r.starts_at)}, ${dm(r.starts_at)}</span><span class="num s">${r.text}</span><span class="muted">${SCALES[r.scale]}</span>
+        ${myBest && mine.length > 1 && r.event_id === myBest.event_id ? html`<span class="res-best">${icons.trophy(14)} Bestwert</span>` : ''}</li>`)}</ul></div>` : ''}`);
+  el.hidden = false;
 }

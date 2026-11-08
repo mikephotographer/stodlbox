@@ -121,6 +121,23 @@ function load() {
   if (!db || !db.members) { db = seed(); generateSeries(6); persist(); }
   if (!db.photos) db.photos = [];
   if (!db.photoTickets) db.photoTickets = [];
+  if (!db.results) db.results = seedResults();
+}
+
+/** Ein paar Ergebnisse bei vergangenen Demo-Trainings */
+function seedResults() {
+  const murph = db.events.find((e) => e.title === 'Murph light');
+  if (!murph) return [];
+  const id = (n) => (db.members.find((m) => m.name === n) || {}).id;
+  const at = murph.starts_at;
+  return [
+    ['Lukas', 'time', 2312, '38:32', 'rx', null],
+    ['Mike', 'time', 2475, '41:15', 'rx', 'Pull-Ups in 5er-Sets'],
+    ['Kathi', 'time', 2290, '38:10', 'scaled', 'Ring Rows statt Pull-Ups'],
+    ['Flo', 'other', null, 'Nur halbe Distanz', 'beginner', null],
+  ].filter(([n]) => id(n)).map(([n, kind, value, text, scale, note]) => ({
+    event_id: murph.id, member_id: id(n), score_kind: kind, score_value: value, score_text: text, scale, note, created_at: at, updated_at: at,
+  }));
 }
 function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* egal */ }
@@ -169,6 +186,27 @@ function eventJson(e, memberId) {
     my_vote: (db.votes.find((v) => v.event_id === e.id && v.member_id === memberId) || {}).option_id || null,
     my_rsvp: mine ? mine.status : null,
     my_waitlist_pos: wl >= 0 ? wl + 1 : null,
+    result_count: (db.results || []).filter((r) => r.event_id === e.id).length,
+    my_result: ((db.results || []).find((r) => r.event_id === e.id && r.member_id === memberId) || {}).score_text || null,
+  };
+}
+
+const workoutKey = (w) => (String(w || '').trim() ? String(w).trim().replace(/\s+/g, ' ').toLowerCase() : null);
+function resultJson(r, memberId) {
+  return { event_id: r.event_id, member_id: r.member_id, name: memberName(r.member_id), kind: r.score_kind, value: r.score_value,
+    text: r.score_text, scale: r.scale, note: r.note, mine: r.member_id === memberId, at: r.updated_at };
+}
+function resultsFor(eventId, memberId) {
+  const e = db.events.find((x) => x.id === eventId);
+  if (!e) throw err('NOT_FOUND');
+  const k = workoutKey(e.workout);
+  return {
+    open: e.status === 'planned' && e.starts_at <= nowISO(),
+    list: db.results.filter((r) => r.event_id === eventId).sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1)).map((r) => resultJson(r, memberId)),
+    history: !k || !memberId ? [] : db.results.filter((r) => r.member_id === memberId && r.event_id !== eventId)
+      .map((r) => [r, db.events.find((x) => x.id === r.event_id)]).filter(([, x]) => x && workoutKey(x.workout) === k)
+      .sort(([, a], [, b]) => (a.starts_at < b.starts_at ? 1 : -1))
+      .map(([r, x]) => ({ ...resultJson(r, memberId), title: x.title, starts_at: x.starts_at })),
   };
 }
 
@@ -349,6 +387,7 @@ function deleteEvent(id) {
   db.events = db.events.filter((e) => e.id !== id);
   dropOptions(id, []);
   db.rsvps = db.rsvps.filter((r) => r.event_id !== id);
+  db.results = (db.results || []).filter((r) => r.event_id !== id);
   db.polls.forEach((p) => { if (p.event_id === id) p.event_id = null; });
 }
 
@@ -438,6 +477,40 @@ export const mockApi = {
     [...new Set(optionIds)].forEach((id) => db.answers.push({ option_id: id, member_id: memberId }));
     return pollJson(p, memberId);
   }),
+  // ---------- Ergebnisse ----------
+  getResults: rd((eventId, memberId) => { assertCode(code()); return resultsFor(eventId, memberId); }),
+  workoutResults: rd((workout, memberId) => {
+    assertCode(code());
+    const k = workoutKey(workout);
+    if (!k) return [];
+    return db.results.map((r) => [r, db.events.find((x) => x.id === r.event_id)])
+      .filter(([, x]) => x && x.status === 'planned' && workoutKey(x.workout) === k)
+      .sort(([, a], [, b]) => (a.starts_at < b.starts_at ? 1 : -1))
+      .map(([r, x]) => ({ ...resultJson(r, memberId), title: x.title, starts_at: x.starts_at }));
+  }),
+  saveResult: tx((eventId, memberId, r) => {
+    assertCode(code()); assertMember(memberId);
+    const e = db.events.find((x) => x.id === eventId);
+    if (!e) throw err('NOT_FOUND');
+    if (e.status === 'cancelled') throw err('CANCELLED');
+    if (e.starts_at > nowISO()) throw err('RESULTS_EARLY');
+    const text = String(r.text || '').trim();
+    const note = String(r.note || '').trim() || null;
+    if (!['time', 'cap', 'rounds', 'reps', 'load', 'other'].includes(r.kind) || !['rx', 'scaled', 'beginner'].includes(r.scale)
+      || text.length < 1 || text.length > 40 || (note && note.length > 140)) throw err('INVALID');
+    const value = r.kind === 'other' ? null : Number(r.value);
+    if (r.kind !== 'other' && (!Number.isFinite(value) || value < 0 || value > 1e6)) throw err('INVALID');
+    db.results = db.results.filter((x) => !(x.event_id === eventId && x.member_id === memberId));
+    db.results.push({ event_id: eventId, member_id: memberId, score_kind: r.kind, score_value: value, score_text: text, scale: r.scale, note, created_at: nowISO(), updated_at: nowISO() });
+    return resultsFor(eventId, memberId);
+  }),
+  deleteResult: tx((eventId, memberId) => {
+    assertCode(code());
+    db.results = db.results.filter((x) => !(x.event_id === eventId && x.member_id === memberId));
+    return resultsFor(eventId, memberId);
+  }),
+  calendarFeed: async () => null,
+
   // ---------- Fotos (Dateien nur im Speicher dieser Seite, Einträge im localStorage) ----------
   photoUrl: (path) => photoFiles.get(path) || PHOTO_PLACEHOLDER,
   getEventPhotos: rd((eventId, memberId) => {
@@ -686,6 +759,7 @@ export const mockApi = {
     db.rsvps = moveRows(db.rsvps, 'event_id');
     db.votes = moveRows(db.votes, 'event_id');
     db.answers = moveRows(db.answers, 'option_id');
+    db.results = moveRows(db.results, 'event_id');
     db.members.find((m) => m.id === from).active = false;
     db.events.filter((e) => e.starts_at > nowISO() && e.status === 'planned').forEach((e) => promote(e.id));
   }),
