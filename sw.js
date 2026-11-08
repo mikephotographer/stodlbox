@@ -2,9 +2,9 @@
 // - Eigene Dateien: network-first (immer aktuell, offline aus dem Cache)
 // - Schriften und supabase-js vom CDN: cache-first (fixe Versionen)
 // - Supabase-Daten: nicht anfassen (der Board-Stand liegt im localStorage der App)
-const CACHE = 'stodlbox-v9';
+const CACHE = 'stodlbox-v10';
 const SHELL = [
-  './', './index.html', './config.js', './manifest.webmanifest', './manifest-admin.webmanifest',
+  './', './index.html', './config.js', './manifest.webmanifest', './manifest-admin.webmanifest', './admin/',
   './css/tokens.css', './css/app.css',
   './js/main.js', './js/api.js', './js/state.js', './js/router.js', './js/html.js', './js/ui.js', './js/icons.js',
   './js/format.js', './js/equipment.js', './js/seed-rules.js', './js/calendar.js', './js/share.js',

@@ -4,7 +4,7 @@
   "short_name": "Stodl Admin",
   "description": "Stodlbox – Admin-Bereich",
   "lang": "de-AT",
-  "start_url": "./#/admin",
+  "start_url": "./admin/",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",

@@ -43,7 +43,23 @@ function tabbar(active) {
 }
 
 // ---------------------------------------------------------------- Login
+// Angefangener Login (Mail verschickt, Code noch nicht eingegeben) überlebt den Wechsel in die Mail-App –
+// die Home-Bildschirm-App am iPhone lädt danach oft komplett neu.
+const PENDING = 'stodlbox.pendingLogin';
+const pendingLogin = {
+  get() {
+    try {
+      const p = JSON.parse(localStorage.getItem(PENDING));
+      return p && Date.now() - p.at < 60 * 60 * 1000 ? p : null;
+    } catch { return null; }
+  },
+  set(email) { try { localStorage.setItem(PENDING, JSON.stringify({ email, at: Date.now() })); } catch { /* egal */ } },
+  clear() { try { localStorage.removeItem(PENDING); } catch { /* egal */ } },
+};
+
 function renderLogin(root, { notAdmin, email } = {}) {
+  const pending = notAdmin ? null : pendingLogin.get();
+  if (pending && !email) email = pending.email;
   document.title = 'STODLBOX · Admin-Login';
   mount(root, html`<div class="screen">
     <div class="band"><div class="topbar"><a class="logo" href="#/">STODL<b>BOX</b></a></div></div>
@@ -57,7 +73,7 @@ function renderLogin(root, { notAdmin, email } = {}) {
       <div class="form-actions"><button class="btn" type="submit">Code schicken</button></div>
     </form>
     <form id="login-code" novalidate hidden>
-      <div class="banner">${icons.check(20)}<p>Mail ist unterwegs. Gib den Code aus der Mail ein. Der Link in der Mail funktioniert auch, öffnet aber evtl. einen anderen Browser.</p></div>
+      <div class="banner">${icons.check(20)}<p>Mail an <strong>${email || 'dich'}</strong> ist unterwegs. Öffne sie und tipp den Code hier ein.</p></div>
       <label class="field"><span class="label">Code aus der Mail</span>
         <input class="input" name="token" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
       <div class="form-actions"><button class="btn" type="submit">Einloggen</button>
@@ -72,6 +88,13 @@ function renderLogin(root, { notAdmin, email } = {}) {
   const fMail = root.querySelector('#login-mail');
   const fCode = root.querySelector('#login-code');
   let mail = email || '';
+  const showCode = () => {
+    fMail.hidden = true;
+    fCode.hidden = false;
+    const strong = fCode.querySelector('.banner strong');
+    if (strong) strong.textContent = mail;
+  };
+  if (fMail && pending) showCode();
   if (fMail) {
     fMail.onsubmit = async (ev) => {
       ev.preventDefault();
@@ -81,8 +104,8 @@ function renderLogin(root, { notAdmin, email } = {}) {
       await busy(fMail.querySelector('button'), async () => {
         try {
           await api.sendLogin(mail);
-          fMail.hidden = true;
-          fCode.hidden = false;
+          pendingLogin.set(mail);
+          showCode();
           fCode.elements.token.focus();
           toast('Mail ist unterwegs');
         } catch (e) {
@@ -104,6 +127,7 @@ function renderLogin(root, { notAdmin, email } = {}) {
       await busy(fCode.querySelector('button[type=submit]'), async () => {
         try {
           await api.verifyLogin(mail, fCode.elements.token.value.trim());
+          pendingLogin.clear();
           navigate('/admin', { replace: true });
         } catch (e) {
           errEl.textContent = 'Der Code passt nicht oder ist abgelaufen.';
@@ -114,7 +138,7 @@ function renderLogin(root, { notAdmin, email } = {}) {
   root.onclick = async (ev) => {
     const a = ev.target.closest('[data-action]');
     if (!a) return;
-    if (a.dataset.action === 'login-back') { fMail.hidden = false; fCode.hidden = true; }
+    if (a.dataset.action === 'login-back') { pendingLogin.clear(); fMail.hidden = false; fCode.hidden = true; }
     if (a.dataset.action === 'logout') { await api.signOut(); state.setFlag('adminHome', false); renderLogin(root); }
   };
 }
