@@ -9,7 +9,7 @@ import { counts } from '../../components/event.js';
 import { appLink, shareText, voteShareText, eventShareText } from '../../share.js';
 import { navigate } from '../../router.js';
 import { adminHead } from './index.js';
-import { filterChips, tagCounts } from '../../components/workouts.js';
+import { filterChips, tagCounts, hasTag, matchesQuery } from '../../components/workouts.js';
 
 const STATUS_LABEL = { yes: 'dabei', maybe: 'vielleicht', no: 'kann nicht', waitlist: 'warteliste' };
 
@@ -236,12 +236,21 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
       const q = dlg.querySelector('#tpl-q');
       let timer;
       let counts = [];
+      // Ganze Datenbank einmal laden und lokal filtern (die Such-RPC liefert max. 60 Vorlagen).
+      let all = null;
       const drawChips = () => mount(chips, counts.length ? filterChips(counts, tag) : '');
-      api.listTemplates().then((l) => { counts = tagCounts(l); drawChips(); }).catch(() => {});
       const load = async () => {
         try {
-          results = await api.searchWorkouts(q.value, tag || null);
-          mount(list, results.length ? html`${results.map((r, i) => html`<button class="pick" data-i="${i}">
+          if (!all) {
+            all = (await api.listTemplates()).map((t) => ({ kind: 'template', id: t.id, title: t.title, workout: t.workout, tags: t.tags || [], date: null }));
+            counts = tagCounts(all);
+            drawChips();
+          }
+          const tpl = all.filter((w) => hasTag(w, tag) && matchesQuery(w, q.value));
+          const past = tag ? [] : (await api.searchWorkouts(q.value)).filter((r) => r.kind === 'event');
+          results = [...tpl, ...past];
+          mount(list, results.length ? html`<p class="count" style="margin-top:4px">${tpl.length} aus der Datenbank${past.length ? `, ${past.length} von früheren Terminen` : ''}</p>
+            ${results.map((r, i) => html`<button class="pick" data-i="${i}">
             <span class="k">${r.kind === 'template' ? ((r.tags || []).join(' · ') || 'Datenbank') : `Termin am ${short(r.date)}`}</span>
             <span class="t">${r.title}</span><span class="w">${r.workout}</span></button>`)}`
             : html`<p class="muted">Nichts gefunden.</p>`);
