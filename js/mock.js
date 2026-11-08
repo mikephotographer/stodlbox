@@ -95,9 +95,12 @@ function seed() {
     members, series, events, options: opts, votes, rsvps, polls: [poll], pollOptions: pollOpts, answers,
     rules: SEED_RULES.map((r, i) => ({ id: uid(), ...r, active: true, sort: (i + 1) * 10 })),
     templates: [
-      { id: uid(), title: 'Cindy', workout: 'AMRAP 20 min:\n5 Pull-Ups\n10 Push-Ups\n15 Air Squats', created_at: nowISO() },
-      { id: uid(), title: 'Fran', workout: '21-15-9:\nThruster (43/30 kg)\nPull-Ups', created_at: nowISO() },
-      { id: uid(), title: 'HYROX-Sim Light', workout: '4 Runden:\n1 km Run\n20 Wall Balls\n15 Toes-to-Bar\n50 m Sled Push', created_at: nowISO() },
+      { id: uid(), title: 'Cindy', workout: 'AMRAP 20 Min.:\n5 Pull-Ups\n10 Push-Ups\n15 Air Squats', tags: ['Girls', 'Benchmark', 'AMRAP', 'Bodyweight'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Fran', workout: 'For Time, 21-15-9:\nThruster (43/30 kg)\nPull-Ups', tags: ['Girls', 'Benchmark', 'For Time'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Helen', workout: '3 Runden For Time:\n400 m Run\n21 Kettlebell Swings (24/16 kg)\n12 Pull-Ups', tags: ['Girls', 'Benchmark', 'For Time'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Murph', workout: 'For Time:\n1,6 km Run\n100 Pull-Ups\n200 Push-Ups\n300 Air Squats\n1,6 km Run\nmit Weste (9/6 kg)', tags: ['Hero', 'Benchmark', 'For Time'], notes: 'Pull-Ups, Push-Ups und Squats dürfen aufgeteilt werden.', created_at: nowISO() },
+      { id: uid(), title: 'HYROX-Sim Light', workout: '4 Runden:\n1 km Run\n20 Wall Balls\n15 Toes-to-Bar\n50 m Sled Push', tags: ['Hyrox'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Partner-Chipper', workout: 'Zu zweit For Time:\n100 Wall Balls\n80 Kettlebell Swings\n60 Burpees\n40 Box Jumps\n20 Pull-Ups', tags: ['Partner', 'For Time'], notes: null, created_at: nowISO() },
     ],
     session: null,
   };
@@ -412,15 +415,19 @@ export const mockApi = {
     [...new Set(optionIds)].forEach((id) => db.answers.push({ option_id: id, member_id: memberId }));
     return pollJson(p, memberId);
   }),
-  searchWorkouts: rd((q = '') => {
+  searchWorkouts: rd((q = '', tag = null) => {
     assertCode(code());
     const needle = q.trim().toLowerCase();
-    const hit = (t, w) => !needle || t.toLowerCase().includes(needle) || (w || '').toLowerCase().includes(needle);
+    const tagLc = (tag || '').toLowerCase();
+    const hit = (t, w, tags = []) => !needle || t.toLowerCase().includes(needle) || (w || '').toLowerCase().includes(needle)
+      || tags.some((g) => g.toLowerCase().includes(needle));
     return [
-      ...db.templates.filter((t) => hit(t.title, t.workout)).map((t) => ({ kind: 'template', id: t.id, title: t.title, workout: t.workout, date: null })),
-      ...db.events.filter((e) => e.workout && e.starts_at < nowISO() && hit(e.title, e.workout))
+      ...db.templates.filter((t) => hit(t.title, t.workout, t.tags || []) && (!tagLc || (t.tags || []).some((g) => g.toLowerCase() === tagLc)))
+        .sort((a, b) => a.title.localeCompare(b.title, 'de'))
+        .map((t) => ({ kind: 'template', id: t.id, title: t.title, workout: t.workout, tags: t.tags || [], date: null })),
+      ...(tagLc ? [] : db.events.filter((e) => e.workout && e.starts_at < nowISO() && hit(e.title, e.workout))
         .sort((a, b) => (a.starts_at < b.starts_at ? 1 : -1)).slice(0, 30)
-        .map((e) => ({ kind: 'event', id: e.id, title: e.title, workout: e.workout, date: e.starts_at })),
+        .map((e) => ({ kind: 'event', id: e.id, title: e.title, workout: e.workout, tags: [], date: e.starts_at }))),
     ];
   }),
 
@@ -537,8 +544,9 @@ export const mockApi = {
   saveTemplate: tx((t) => {
     requireAdmin();
     if (!String(t.title || '').trim() || !String(t.workout || '').trim()) throw err('INVALID');
-    if (t.id) { const row = db.templates.find((x) => x.id === t.id); Object.assign(row, { title: t.title.trim(), workout: t.workout.trim() }); return row; }
-    const row = { id: uid(), title: t.title.trim(), workout: t.workout.trim(), created_at: nowISO() };
+    const fields = { title: t.title.trim(), workout: t.workout.trim(), tags: [...new Set((t.tags || []).map((g) => String(g).trim()).filter(Boolean))], notes: (t.notes || '').trim() || null, updated_at: nowISO() };
+    if (t.id) { const row = db.templates.find((x) => x.id === t.id); Object.assign(row, fields); return row; }
+    const row = { id: uid(), ...fields, created_at: nowISO() };
     db.templates.push(row);
     return row;
   }),

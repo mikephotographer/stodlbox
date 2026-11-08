@@ -11,12 +11,12 @@ import { appLink, shareText, voteShareText, eventShareText, pollShareText } from
 import { navigate } from '../../router.js';
 import { renderEventForm } from './event-form.js';
 import { renderSeriesForm, renderPollForm } from './forms.js';
-import { renderTemplates, renderEquipment, renderPeople, renderSettings } from './manage.js';
+import { renderWorkouts, renderEquipment, renderPeople, renderSettings } from './manage.js';
 
 const TABS = [
   ['', 'Termine', icons.list],
   ['umfragen', 'Umfragen', icons.vote],
-  ['vorlagen', 'Vorlagen', icons.doc],
+  ['workouts', 'Workouts', icons.doc],
   ['equipment', 'Equipment', icons.bag],
   ['mehr', 'Mehr', icons.more],
 ];
@@ -299,7 +299,7 @@ export async function renderAdmin(root, sub) {
   if (a === 'umfragen') return renderPolls(root);
   if (a === 'umfrage' && b && c === 'uebernehmen' && d) { tabbar('umfragen'); return renderEventForm(root, null, { fromPoll: b, optionId: d }); }
   if (a === 'umfrage' && b) { tabbar('umfragen'); return renderPollForm(root, b === 'new' ? null : b); }
-  if (a === 'vorlagen') { tabbar('vorlagen'); return renderTemplates(root); }
+  if (a === 'workouts' || a === 'vorlagen') { tabbar('workouts'); return renderWorkouts(root); }
   if (a === 'equipment') { tabbar('equipment'); return renderEquipment(root); }
   if (a === 'mehr') return renderMore(root);
   if (a === 'leute') { tabbar('mehr'); return renderPeople(root); }

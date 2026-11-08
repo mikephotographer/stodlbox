@@ -1,4 +1,4 @@
-// Verwaltung: Vorlagen, Equipment-Regeln, Leute, Einstellungen.
+// Verwaltung: Workout-Datenbank, Equipment-Regeln, Leute, Einstellungen.
 import { html, mount } from '../../html.js';
 import { icons } from '../../icons.js';
 import { api, DEMO } from '../../api.js';
@@ -8,6 +8,7 @@ import { matchEquipment, equipmentSentence } from '../../equipment.js';
 import { appLink, shareText, copyText } from '../../share.js';
 import { navigate } from '../../router.js';
 import { adminHead } from './index.js';
+import { parseTags, tagCounts, hasTag, matchesQuery, filterChips, workoutRow } from '../../components/workouts.js';
 
 /** Sheet mit Formular; resolve mit FormData-Objekt oder undefined */
 function formSheet(title, body, okLabel = 'Speichern', validate) {
@@ -28,55 +29,112 @@ function formSheet(title, body, okLabel = 'Speichern', validate) {
   });
 }
 
-// ---------------------------------------------------------------- Vorlagen
-export async function renderTemplates(root) {
-  document.title = 'STODLBOX · Vorlagen';
-  mount(root, html`${adminHead('Vorlagen', { plus: 'new' })}<div class="skeleton" style="height:200px" aria-busy="true"></div>`);
+// ---------------------------------------------------------------- Workout-Datenbank
+export async function renderWorkouts(root) {
+  document.title = 'STODLBOX · Workouts';
+  mount(root, html`${adminHead('Workouts', { plus: 'new' })}<div class="skeleton" style="height:200px" aria-busy="true"></div>`);
   let list = [];
+  let q = '';
+  let tag = '';
   const load = async () => {
-    try { list = await api.listTemplates(); } catch (e) { mount(root, html`${adminHead('Vorlagen')}<p class="err">${errText(e)}</p>`); return false; }
+    try { list = await api.listTemplates(); } catch (e) { mount(root, html`${adminHead('Workouts')}<p class="err">${errText(e)}</p>`); return false; }
+    if (tag && !list.some((w) => hasTag(w, tag))) tag = '';
     return true;
   };
-  const draw = () => mount(root, html`${adminHead('Vorlagen', { plus: 'new' })}
-    <p class="hint" style="margin-bottom:12px">Vorlagen wählst du beim Termin über „aus vorlage“. Dort kannst du auch frühere Workouts übernehmen.</p>
-    ${list.length ? html`<ul class="list">${list.map((t) => html`<li><button class="pick" data-action="edit" data-id="${t.id}" style="padding:14px 0">
-      <span class="t" style="display:block">${t.title}</span><span class="w" style="display:block">${t.workout}</span></button></li>`)}</ul>`
-      : html`<div class="empty-state"><p class="label">Noch keine Vorlagen</p><p>Leg eine an oder hak beim Termin „Als Vorlage speichern“ an.</p></div>`}`);
+
+  // Liste und Chips werden getrennt neu gezeichnet, damit das Suchfeld den Fokus behält.
+  const drawList = () => {
+    const counts = tagCounts(list);
+    mount(root.querySelector('#wo-chips'), counts.length ? filterChips(counts, tag, { total: list.length }) : '');
+    const shown = list.filter((w) => hasTag(w, tag) && matchesQuery(w, q));
+    mount(root.querySelector('#wo-list'), !list.length
+      ? html`<div class="empty-state"><p class="label">Noch keine Workouts</p><p>Leg eines über das Plus an oder hak beim Termin „In Workout-Datenbank speichern“ an.</p></div>`
+      : shown.length
+        ? html`<p class="count">${shown.length} ${shown.length === 1 ? 'Workout' : 'Workouts'}</p><ul class="list">${shown.map(workoutRow)}</ul>`
+        : html`<p class="muted" style="padding:16px 0">Nichts gefunden.</p>`);
+  };
+  const draw = () => {
+    mount(root, html`${adminHead('Workouts', { plus: 'new' })}
+      <label class="sr-only" for="wo-q">Workouts durchsuchen</label>
+      <input class="input" id="wo-q" type="search" placeholder="Suchen: Name, Übung, Gruppe …" autocomplete="off" value="${q}">
+      <div id="wo-chips"></div>
+      <div id="wo-list"></div>
+      <p class="hint" style="margin-top:20px">Beim Termin holst du ein Workout über „Aus Datenbank oder früher“.</p>`);
+    drawList();
+  };
   if (!(await load())) return;
   draw();
 
+  root.oninput = (e) => {
+    if (e.target.id !== 'wo-q') return;
+    q = e.target.value;
+    drawList();
+  };
+
   root.onclick = async (e) => {
+    const chip = e.target.closest('[data-tag]');
+    if (chip && chip.closest('#wo-chips')) { tag = chip.dataset.tag; drawList(); return; }
     const a = e.target.closest('[data-action]');
     if (!a) return;
-    const t = a.dataset.id ? list.find((x) => x.id === a.dataset.id) : null;
-    let del = false;
-    const data = await sheet(t ? 'Vorlage bearbeiten' : 'Neue Vorlage', html`<form novalidate>
-      <label class="field" style="margin-top:0"><span class="label">Titel</span><input class="input" name="title" maxlength="80" value="${t ? t.title : ''}" required></label>
-      <label class="field"><span class="label">Workout</span><textarea class="textarea" name="workout" rows="8" required>${t ? t.workout : ''}</textarea></label>
-      <p class="err" role="alert"></p>
-      <div class="form-actions"><button class="btn" type="submit">Speichern</button>
-        ${t ? html`<button class="link danger" type="button" data-del>Vorlage löschen</button>` : ''}
-        <button class="link" type="button" data-close>abbrechen</button></div></form>`, (dlg, close) => {
-      const form = dlg.querySelector('form');
-      form.addEventListener('submit', (ev) => {
-        ev.preventDefault();
-        const title = form.elements.title.value.trim();
-        const workout = form.elements.workout.value.trim();
-        if (!title || !workout) { form.querySelector('.err').textContent = 'Titel und Workout ausfüllen.'; return; }
-        close({ title, workout });
-      });
-      dlg.querySelector('[data-del]')?.addEventListener('click', () => { del = true; close(); });
-    });
+    const w = a.dataset.id ? list.find((x) => x.id === a.dataset.id) : null;
+    const res = await workoutSheet(w, tagCounts(list).map((c) => c.tag), tag);
     try {
-      if (del && t) {
-        if (await confirmSheet('Vorlage löschen', `Vorlage „${t.title}“ löschen?`, 'Löschen', true)) { await api.deleteTemplate(t.id); toast('Gelöscht'); }
-      } else if (data) {
-        await api.saveTemplate({ id: t && t.id, ...data });
-        toast('Gespeichert');
+      if (res === 'delete' && w) {
+        if (await confirmSheet('Workout löschen', `„${w.title}“ aus der Datenbank löschen? Termine, die es schon verwenden, bleiben unverändert.`, 'Löschen', true)) {
+          await api.deleteTemplate(w.id);
+          toast('Gelöscht');
+        }
+      } else if (res) {
+        await api.saveTemplate({ id: w && w.id, ...res });
+        toast(w ? 'Gespeichert' : 'Workout angelegt');
       }
     } catch (err) { toast(errText(err), 'error'); }
     if (await load()) draw();
   };
+}
+
+/** Bearbeiten/Anlegen. Resolve: Daten-Objekt, 'delete' oder undefined */
+function workoutSheet(w, known, presetTag) {
+  const initialTags = w ? (w.tags || []) : (presetTag ? [presetTag] : []);
+  const suggest = [...new Set([...known, ...['Girls', 'Hero', 'Benchmark', 'Hyrox', 'Partner', 'AMRAP', 'EMOM', 'For Time', 'Kraft']])];
+  const chipsFor = (cur) => {
+    const sel = new Set(cur.map((t) => t.toLowerCase()));
+    return html`${suggest.map((t) => html`<button type="button" class="chip" data-add="${t}" aria-pressed="${String(sel.has(t.toLowerCase()))}">${t}</button>`)}`;
+  };
+  return sheet(w ? 'Workout bearbeiten' : 'Neues Workout', html`<form novalidate>
+    <label class="field" style="margin-top:0"><span class="label">Name</span><input class="input" name="title" maxlength="80" placeholder="z. B. Fran" value="${w ? w.title : ''}" required></label>
+    <label class="field"><span class="label">Workout</span><textarea class="textarea" name="workout" rows="8" placeholder="For Time, 21-15-9:&#10;Thruster (43/30 kg)&#10;Pull-Ups" required>${w ? w.workout : ''}</textarea></label>
+    <label class="field"><span class="label">Gruppen / Tags</span><input class="input" name="tags" autocomplete="off" placeholder="mit Komma trennen, z. B. Hero, For Time" value="${initialTags.join(', ')}"></label>
+    <div class="chips wrap" data-suggest>${chipsFor(initialTags)}</div>
+    <label class="field"><span class="label">Notiz (optional)</span><textarea class="textarea" name="notes" rows="2" style="min-height:72px;font-family:var(--font-body);font-size:16px" placeholder="Skalierung, Herkunft, Tipps">${w && w.notes ? w.notes : ''}</textarea></label>
+    <p class="err" role="alert"></p>
+    <div class="form-actions"><button class="btn" type="submit">Speichern</button>
+      ${w ? html`<button class="link danger" type="button" data-del>Workout löschen</button>` : ''}
+      <button class="link" type="button" data-close>abbrechen</button></div></form>`, (dlg, close) => {
+    const form = dlg.querySelector('form');
+    const tagsIn = form.elements.tags;
+    const box = dlg.querySelector('[data-suggest]');
+    const refresh = () => mount(box, chipsFor(parseTags(tagsIn.value)));
+    tagsIn.addEventListener('input', refresh);
+    box.addEventListener('click', (ev) => {
+      const b = ev.target.closest('[data-add]');
+      if (!b) return;
+      const cur = parseTags(tagsIn.value);
+      const t = b.dataset.add;
+      const next = cur.some((x) => x.toLowerCase() === t.toLowerCase()) ? cur.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...cur, t];
+      tagsIn.value = next.join(', ');
+      refresh();
+    });
+    form.addEventListener('submit', (ev) => {
+      ev.preventDefault();
+      const title = form.elements.title.value.trim();
+      const workout = form.elements.workout.value.trim();
+      if (!title || !workout) { form.querySelector('.err').textContent = 'Name und Workout ausfüllen.'; return; }
+      close({ title, workout, tags: parseTags(tagsIn.value), notes: form.elements.notes.value.trim() || null });
+    });
+    dlg.querySelector('[data-del]')?.addEventListener('click', () => close('delete'));
+    if (!w) setTimeout(() => form.elements.title.focus(), 50);
+  });
 }
 
 // ---------------------------------------------------------------- Equipment

@@ -43,7 +43,7 @@ const real = {
   ackPromotion: (eventId, memberId) => rpc('ack_promotion', { p_code: code(), p_event_id: eventId, p_member_id: memberId }),
   voteWorkout: (eventId, memberId, optionId) => rpc('vote_workout', { p_code: code(), p_event_id: eventId, p_member_id: memberId, p_option_id: optionId }),
   answerDatePoll: (pollId, memberId, optionIds) => rpc('answer_date_poll', { p_code: code(), p_poll_id: pollId, p_member_id: memberId, p_option_ids: optionIds }),
-  searchWorkouts: (q) => rpc('search_workouts', { p_code: code(), p_query: q || '' }),
+  searchWorkouts: (q, tag) => rpc('search_workouts', { p_code: code(), p_query: q || '', p_tag: tag || null }),
 
   // ---------- Admin: Login ----------
   async session() {
@@ -107,7 +107,7 @@ const real = {
   },
   async saveTemplate(t) {
     const c = await client();
-    const row = { title: t.title, workout: t.workout };
+    const row = { title: t.title, workout: t.workout, tags: t.tags || [], notes: t.notes || null, updated_at: new Date().toISOString() };
     if (t.id) return check(await c.from('workout_templates').update(row).eq('id', t.id).select().single());
     return check(await c.from('workout_templates').insert(row).select().single());
   },

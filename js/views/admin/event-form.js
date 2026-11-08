@@ -1,4 +1,4 @@
-// Termin anlegen / bearbeiten (inkl. Voting, Vorlagen, Teilnehmer, Absagen).
+// Termin anlegen / bearbeiten (inkl. Voting, Workout-Datenbank, Teilnehmer, Absagen).
 import { html, mount } from '../../html.js';
 import { icons } from '../../icons.js';
 import { api } from '../../api.js';
@@ -9,6 +9,7 @@ import { counts } from '../../components/event.js';
 import { appLink, shareText, voteShareText, eventShareText } from '../../share.js';
 import { navigate } from '../../router.js';
 import { adminHead } from './index.js';
+import { filterChips, tagCounts } from '../../components/workouts.js';
 
 const STATUS_LABEL = { yes: 'dabei', maybe: 'vielleicht', no: 'kann nicht', waitlist: 'warteliste' };
 
@@ -79,7 +80,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
   const optionFields = (o, i) => html`<div class="opt-card" data-opt="${i}">
     <div class="label-row" style="margin:0 0 4px"><span class="section-title" style="margin:0">Option ${String.fromCharCode(65 + i)}</span>
       <span class="row" style="gap:4px">
-        <button type="button" class="link" data-action="pick-template" data-target="${i}">Aus Vorlage</button>
+        <button type="button" class="link" data-action="pick-template" data-target="${i}">Aus Datenbank</button>
         ${f.options.length > 2 ? html`<button type="button" class="link muted" data-action="remove-option" data-target="${i}">Entfernen</button>` : ''}
       </span></div>
     <label class="field"><span class="label">Kurztitel</span>
@@ -145,7 +146,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         ${f.mode === 'fixed' ? html`
           <div class="field">
             <div class="label-row" style="margin-bottom:6px"><label class="label" for="workout">Workout-Text</label>
-              <button type="button" class="link" data-action="pick-template" data-target="main">Aus Vorlage oder früher</button></div>
+              <button type="button" class="link" data-action="pick-template" data-target="main">Aus Datenbank oder früher</button></div>
             <textarea class="textarea" id="workout" name="workout" rows="8" placeholder="4 Runden:&#10;400 m Run&#10;20 Wall Balls&#10;&#10;Leer lassen = „Workout folgt“">${f.workout}</textarea>
             <p class="equip-inline" data-preview="workout">${equipPreview(f.workout, rules)}</p>
           </div>` : html`
@@ -161,7 +162,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         <label class="field"><span class="label">Notiz (optional)</span><textarea class="textarea" name="note" rows="2" style="min-height:72px;font-family:var(--font-body);font-size:16px">${f.note}</textarea></label>
         <label class="field"><span class="label">Foto-/Video-Link (optional)</span><input class="input" type="url" name="media_url" inputmode="url" placeholder="https://…" value="${f.media_url}"></label>
 
-        <label class="check"><input type="checkbox" name="as_template" ${f.as_template ? 'checked' : ''}> Als Vorlage speichern</label>
+        <label class="check"><input type="checkbox" name="as_template" ${f.as_template ? 'checked' : ''}> In Workout-Datenbank speichern</label>
         ${pollOpt ? html`<label class="check"><input type="checkbox" name="prefill" ${f.prefill ? 'checked' : ''}> Alle ${pollOpt.members.length}, die für diese Option gestimmt haben, auf „vielleicht“ setzen</label>` : ''}
 
         <p class="err" id="evf-err" role="alert"></p>
@@ -224,25 +225,38 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
 
   async function pickTemplate(target) {
     let results = [];
-    const pick = await sheet('Vorlage oder früheres Workout', html`
+    let tag = '';
+    const pick = await sheet('Workout aus Datenbank oder früher', html`
       <label class="sr-only" for="tpl-q">Suchen</label>
-      <input class="input" id="tpl-q" type="search" placeholder="Suchen …" autocomplete="off">
-      <div id="tpl-list" style="margin-top:8px"><p class="muted">Lädt …</p></div>`, (dlg, close) => {
+      <input class="input" id="tpl-q" type="search" placeholder="Suchen: Name, Übung, Gruppe …" autocomplete="off">
+      <div id="tpl-chips"></div>
+      <div id="tpl-list" style="margin-top:4px"><p class="muted">Lädt …</p></div>`, (dlg, close) => {
       const list = dlg.querySelector('#tpl-list');
+      const chips = dlg.querySelector('#tpl-chips');
       const q = dlg.querySelector('#tpl-q');
       let timer;
+      let counts = [];
+      const drawChips = () => mount(chips, counts.length ? filterChips(counts, tag) : '');
+      api.listTemplates().then((l) => { counts = tagCounts(l); drawChips(); }).catch(() => {});
       const load = async () => {
         try {
-          results = await api.searchWorkouts(q.value);
+          results = await api.searchWorkouts(q.value, tag || null);
           mount(list, results.length ? html`${results.map((r, i) => html`<button class="pick" data-i="${i}">
-            <span class="k">${r.kind === 'template' ? 'Vorlage' : short(r.date)}</span>
-            <span class="t" style="display:block">${r.title}</span><span class="w" style="display:block">${r.workout}</span></button>`)}`
+            <span class="k">${r.kind === 'template' ? ((r.tags || []).join(' · ') || 'Datenbank') : `Termin am ${short(r.date)}`}</span>
+            <span class="t">${r.title}</span><span class="w">${r.workout}</span></button>`)}`
             : html`<p class="muted">Nichts gefunden.</p>`);
         } catch (err) {
           mount(list, html`<p class="err">${errText(err)}</p>`);
         }
       };
       q.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(load, 200); });
+      chips.addEventListener('click', (e2) => {
+        const c = e2.target.closest('[data-tag]');
+        if (!c) return;
+        tag = c.dataset.tag;
+        drawChips();
+        load();
+      });
       list.addEventListener('click', (e2) => {
         const b = e2.target.closest('[data-i]');
         if (b) close(results[+b.dataset.i]);
@@ -348,7 +362,9 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
           const tpls = f.mode === 'fixed'
             ? (payload.workout ? [{ title: payload.title, workout: payload.workout }] : [])
             : payload.options.map((o) => ({ title: o.label, workout: o.workout }));
-          await Promise.all(tpls.map((t) => api.saveTemplate(t)));
+          // Gleiches Workout nicht doppelt ablegen
+          const known = new Set((await api.listTemplates()).map((t) => t.workout.trim()));
+          await Promise.all(tpls.filter((t) => !known.has(t.workout.trim())).map((t) => api.saveTemplate(t)));
         }
         toast('Gespeichert');
         if (!ev) {

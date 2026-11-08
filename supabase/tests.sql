@@ -319,6 +319,31 @@ begin
   raise notice 'OK 8: Rechte';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 9) Workout-Datenbank: Tags und Filter (setzt Migration 005 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare r jsonb;
+begin
+  perform pg_temp.as_system();
+  insert into workout_templates (title, workout, tags) values
+    ('Test Hero WOD', 'For Time: 100 Burpees', array['Hero','Test-Tag']),
+    ('Test Partner WOD', 'AMRAP 10: 10 Wall Balls', array['Partner']);
+  perform pg_temp.as_anon();
+  r := search_workouts('TEST-CODE', '', 'test-tag');
+  assert jsonb_array_length(r) = 1 and r->0->>'title' = 'Test Hero WOD', 'Tag-Filter sollte genau ein Workout liefern: ' || r::text;
+  assert r->0->'tags' ? 'Hero', 'Tags sollten im Ergebnis stehen';
+  r := search_workouts('TEST-CODE', 'Test-Tag', null);
+  assert exists (select 1 from jsonb_array_elements(r) x where x->>'title' = 'Test Hero WOD'), 'Suche sollte auch Tags treffen';
+  begin
+    perform search_workouts('FALSCH', '', null);
+    raise exception 'search_workouts mit falschem Code hätte scheitern müssen';
+  exception when others then
+    assert sqlerrm like '%BAD_CODE%', 'Erwartet BAD_CODE, bekommen: ' || sqlerrm;
+  end;
+  raise notice 'OK 9: Workout-Datenbank';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

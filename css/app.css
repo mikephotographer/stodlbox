@@ -324,3 +324,15 @@ dialog.sheet::backdrop{background:rgba(0,0,0,.65)}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* Workout-Datenbank: Filter-Chips und Listenzeilen */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 0 4px;margin:0 calc(-1 * var(--pad));padding-left:var(--pad);padding-right:var(--pad);scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips.wrap{flex-wrap:wrap;overflow:visible;margin:0;padding:8px 0 0}
+.chip{flex:none;min-height:36px;padding:0 12px;border:1px solid var(--line);background:transparent;color:var(--text-2);font-size:14px;cursor:pointer;white-space:nowrap}
+.chip .n{color:var(--muted);font-family:var(--font-mono);font-size:12px;margin-left:2px}
+.chip[aria-pressed="true"]{background:var(--surface);color:var(--text);border-color:var(--text-2);font-weight:600}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.count{font-size:13px;color:var(--muted);margin:12px 0 0}
+.pick.wo{padding:14px 0}
+.pick .tags{display:block;font-size:13px;color:var(--muted);margin-top:2px}
