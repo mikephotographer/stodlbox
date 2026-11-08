@@ -21,29 +21,53 @@ function unlockAudio() {
   } catch { audio = null; }
 }
 
-function beep(freq, dur, vol = 0.5, at = 0) {
+// Old-School-Piepser wie die Wanduhr im Gym: Rechteckton, volle Lautstärke über die ganze Länge,
+// nur ganz kurz ein- und ausgeblendet (sonst knackt es). Zwei leicht verstimmte Stimmen machen ihn dicker.
+let out = null;
+function output() {
+  if (out) return out;
+  const comp = audio.createDynamicsCompressor();
+  comp.threshold.value = -12;
+  comp.ratio.value = 6;
+  comp.attack.value = 0.002;
+  comp.release.value = 0.1;
+  const master = audio.createGain();
+  master.gain.value = 1;
+  comp.connect(master).connect(audio.destination);
+  out = comp;
+  return out;
+}
+
+function beep(freq, dur, vol = 0.9, at = 0) {
   if (!audio) return;
   try {
     const t = audio.currentTime + at;
-    const o = audio.createOscillator();
     const g = audio.createGain();
-    o.type = 'square';
-    o.frequency.value = freq;
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(audio.destination);
-    o.start(t);
-    o.stop(t + dur + 0.05);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.005);
+    g.gain.setValueAtTime(vol, t + dur - 0.015);
+    g.gain.linearRampToValueAtTime(0.0001, t + dur);
+    g.connect(output());
+    [freq, freq * 1.004].forEach((f) => {
+      const o = audio.createOscillator();
+      o.type = 'square';
+      o.frequency.value = f;
+      o.connect(g);
+      o.start(t);
+      o.stop(t + dur + 0.02);
+    });
   } catch { /* kein Ton, kein Drama */ }
 }
 
 const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catch { /* iOS kann das nicht */ } };
 
+const HI = 1000; // Grundton wie bei klassischen Gym-Uhren
 const sounds = {
-  tick: () => { beep(660, 0.12, 0.35); vibrate(60); },
-  go: () => { beep(990, 0.6, 0.5); vibrate(300); },
-  rest: () => { beep(440, 0.45, 0.45); vibrate([120, 80, 120]); },
-  done: () => { beep(990, 0.3, 0.5); beep(990, 0.3, 0.5, 0.4); beep(1320, 0.8, 0.5, 0.8); vibrate([300, 100, 300, 100, 600]); },
+  tick: () => { beep(HI, 0.25); vibrate(80); }, // 3-2-1
+  go: () => { beep(HI, 1.0); vibrate(400); }, // langer Ton: los
+  rest: () => { beep(650, 0.35); beep(650, 0.35, 0.9, 0.45); vibrate([150, 100, 150]); }, // zweimal tief: Pause
+  half: () => { beep(HI, 0.12); beep(HI, 0.12, 0.9, 0.2); vibrate([60, 60, 60]); }, // kurz-kurz: Halbzeit
+  done: () => { beep(HI, 0.3); beep(HI, 0.3, 0.9, 0.45); beep(HI, 1.6, 0.9, 0.9); vibrate([300, 100, 300, 100, 800]); },
 };
 
 let wake = null;
@@ -74,7 +98,7 @@ const fieldValue = (c, key) => {
   return clock(c[key]);
 };
 
-function setupView(cfg, source) {
+function setupView(cfg, source, half) {
   const m = cfg.mode;
   const total = mainDuration(cfg);
   return html`${topbar()}
@@ -96,8 +120,10 @@ function setupView(cfg, source) {
         </div>`)}
       </div>
       ${m === 'emom' || m === 'tabata' ? html`<p class="count" style="margin-top:12px">Gesamt ${clock(total)}</p>` : ''}
+      ${m === 'fortime' && !cfg.cap ? '' : html`<label class="toggle-row"><span><strong>Halbzeit-Ton</strong><span class="muted">Kurz-kurz in der Mitte jedes Intervalls</span></span>
+        <input type="checkbox" class="switch" id="t-half" ${half ? 'checked' : ''}></label>`}
       <button class="btn" data-action="start" style="margin-top:24px">${icons.timer(22)} Start</button>
-      <p class="hint" style="margin-top:12px">${PREP} Sekunden Vorlauf. Der Bildschirm bleibt an, Töne kommen 3-2-1 vor jedem Wechsel. Am iPhone den Lautlos-Schalter beachten.</p>
+      <p class="hint" style="margin-top:12px">${PREP} Sekunden Vorlauf. Der Bildschirm bleibt an, Töne: 3-2-1 vor jedem Wechsel, langer Ton bei Start, zweimal tief bei Pause. Am iPhone den Lautlos-Schalter beachten.</p>
     </main>`;
 }
 
@@ -169,18 +195,18 @@ export async function renderTimer(root) {
   const prefs = state.timer;
   const q = route().query;
   let source = q.get('n') || '';
-  let cfg = fromQuery(q) || normalize(prefs[prefs.last] || DEFAULTS.fortime);
+  let cfg = fromQuery(q) || normalize(prefs[prefs.last] || DEFAULTS[prefs.last] || DEFAULTS.fortime);
   if (q.get('m')) history.replaceState(null, '', location.pathname + location.search + '#/timer');
 
   let timer = null;
-  let last = { index: -1, sec: -1 };
+  let last = { index: -1, sec: -1, half: -1 };
 
   const saveCfg = () => {
     const p = { ...state.timer, last: cfg.mode, [cfg.mode]: cfg };
     state.timer = p;
   };
 
-  const drawSetup = () => mount(root, setupView(cfg, source));
+  const drawSetup = () => mount(root, setupView(cfg, source, state.timer.half !== false));
 
   const stopLoop = () => { if (timer) clearInterval(timer); timer = null; keepAwake(false); };
 
@@ -206,7 +232,16 @@ export async function renderTimer(root) {
       }
       const sec = Math.ceil(st.remaining - 1e-6);
       if (!st.done && Number.isFinite(st.remaining) && sec !== last.sec && sec >= 1 && sec <= 3 && st.index === last.index) sounds.tick();
-      last = { index: st.index, sec };
+      // Halbzeit: kurz-kurz in der Mitte jedes Arbeits-Abschnitts ab 20 Sekunden (nur beim Überschreiten, nicht nach dem Wiederöffnen)
+      let half = last.index === st.index ? last.half : -1;
+      if (run.half !== false && !st.done && st.kind === 'work' && Number.isFinite(st.segDur) && st.segDur >= 20 && half !== st.index) {
+        const mid = st.segDur / 2;
+        if (st.inSeg >= mid) {
+          if (last.index === st.index && st.inSeg - mid < 1.5) sounds.half();
+          half = st.index;
+        }
+      }
+      last = { index: st.index, sec, half };
     }
     if (st.done) { showResult(run); return; }
 
@@ -252,7 +287,7 @@ export async function renderTimer(root) {
 
   const startLoop = () => {
     stopLoop();
-    last = { index: -1, sec: -1 };
+    last = { index: -1, sec: -1, half: -1 };
     mount(root, runView(state.timerRun));
     tick();
     timer = setInterval(tick, 100);
@@ -262,7 +297,7 @@ export async function renderTimer(root) {
   const begin = () => {
     unlockAudio();
     saveCfg();
-    state.timerRun = { cfg, name: source, start: now(), pausedAt: null, pausedTotal: 0, laps: [] };
+    state.timerRun = { cfg, name: source, half: state.timer.half !== false, start: now(), pausedAt: null, pausedTotal: 0, laps: [] };
     startLoop();
   };
 
@@ -281,6 +316,13 @@ export async function renderTimer(root) {
     if (document.visibilityState === 'visible' && state.timerRun && !state.timerRun.pausedAt) { keepAwake(true); tick(); }
   };
   document.addEventListener('visibilitychange', onVisible);
+
+  root.onchange = (ev) => {
+    if (ev.target.id === 't-half') {
+      state.timer = { ...state.timer, half: ev.target.checked };
+      if (ev.target.checked) { unlockAudio(); sounds.half(); }
+    }
+  };
 
   let stopArmed = null;
   root.onclick = (ev) => {
