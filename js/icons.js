@@ -23,6 +23,7 @@ export const icons = {
   vote: (s = 22) => svg('<path d="M4 20h16"/><rect x="5" y="11" width="3" height="9"/><rect x="10.5" y="6" width="3" height="14"/><rect x="16" y="14" width="3" height="6"/>', s),
   timer: (s = 22) => svg('<circle cx="12" cy="14" r="7"/><path d="M12 14V10M10 3h4M12 3v4M18 7l1.5-1.5"/>', s),
   trophy: (s = 22) => svg('<path d="M8 4h8v5a4 4 0 0 1-8 0z"/><path d="M8 6H4v1.5A3.5 3.5 0 0 0 8.5 11M16 6h4v1.5a3.5 3.5 0 0 1-4.5 3.5"/><path d="M12 13v4M8 21h8M10 17h4v4"/>', s),
+  lock: (s = 16) => svg('<rect x="5" y="11" width="14" height="10"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>', s),
   archive: (s = 22) => svg('<path d="M3 4h18v4H3z"/><path d="M5 8v12h14V8"/><path d="M10 12h4"/>', s),
   doc: (s = 22) => svg('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/>', s),
   bag: (s = 22) => svg('<path d="M4 8h16l-1 13H5z"/><path d="M9 8V5h6v3"/>', s),

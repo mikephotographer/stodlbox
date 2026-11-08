@@ -501,3 +501,7 @@ dialog.lightbox .lb-top .icon-btn{color:#fff;border:0;background:none}
 .tr-col{display:flex;flex-direction:column;gap:10px}
 .footer .link{font-family:var(--font-display);font-size:15px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);min-height:44px;display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .footer .link:hover{color:var(--text)}
+
+/* Geheime Termine */
+.private-tag{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-ink)}
+.private-tag svg{flex:none}

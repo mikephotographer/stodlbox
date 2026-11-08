@@ -635,6 +635,51 @@ begin
   raise notice 'OK 16: Kalender-Abo';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 17) Geheime Termine (setzt Migration 013 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare ev uuid; past uuid; a uuid; r jsonb; tok uuid;
+begin
+  perform pg_temp.as_admin();
+  ev := admin_save_event(jsonb_build_object('title', 'Solo Geheim', 'starts_at', now() + interval '1 day', 'workout', 'Geheim-WOD', 'private', true));
+  assert (select private from events where id = ev), 'private gespeichert';
+  assert exists (select 1 from jsonb_array_elements(get_board(null, null)->'events') x where x->>'id' = ev::text), 'Admin sieht ihn auf dem Board';
+  assert (get_event(null, ev, null)->>'private')::boolean, 'Admin sieht private im JSON';
+  perform pg_temp.as_system();
+  insert into members (name) values ('Neugier Nina') returning id into a;
+  insert into events (title, starts_at, workout, private) values ('Solo vorbei', now() - interval '2 hours', 'Geheim-WOD', true) returning id into past;
+  insert into rsvps (event_id, member_id, status) values (past, a, 'yes');
+  insert into results (event_id, member_id, score_kind, score_value, score_text, scale) values (past, a, 'time', 100, '1:40', 'rx');
+  perform pg_temp.as_anon();
+  assert not exists (select 1 from jsonb_array_elements(get_board('TEST-CODE', a)->'events') x where x->>'id' in (ev::text, past::text)), 'Freunde sehen ihn nicht auf dem Board';
+  assert not exists (select 1 from jsonb_array_elements(get_archive('TEST-CODE')->'items') x where x->>'id' = past::text), 'nicht im Archiv';
+  begin perform get_event('TEST-CODE', ev, a); raise exception 'get_event hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%NOT_FOUND%', sqlerrm; end;
+  begin perform set_rsvp('TEST-CODE', ev, a, 'yes'); raise exception 'Zusage hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%NOT_FOUND%', sqlerrm; end;
+  begin perform get_results('TEST-CODE', past, a); raise exception 'Ergebnisse hätten nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%NOT_FOUND%', sqlerrm; end;
+  begin perform save_result('TEST-CODE', past, a, 'time', 90, '1:30', 'rx', null); raise exception 'Speichern hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%NOT_FOUND%', sqlerrm; end;
+  assert jsonb_array_length(workout_results('TEST-CODE', 'Geheim-WOD', a)) = 0, 'keine Bestwerte aus geheimen Terminen';
+  assert not exists (select 1 from jsonb_array_elements(search_workouts('TEST-CODE', 'Geheim')) x where x->>'kind' = 'event'), 'nicht in der Suche';
+  assert photo_access(past, a) = 'none', 'keine Fotos';
+  assert jsonb_array_length(recent_photo_events('TEST-CODE', a)) = 0 or not exists (select 1 from jsonb_array_elements(recent_photo_events('TEST-CODE', a)) x where x->>'id' = past::text), 'kein Foto-Hinweis';
+  tok := calendar_token('TEST-CODE');
+  assert strpos(calendar_ics(tok, a), ev::text) = 0 and strpos(calendar_ics(tok, a), past::text) = 0, 'nicht im Kalender-Abo';
+  -- Admin darf alles
+  perform pg_temp.as_admin();
+  r := get_results(null, past, a);
+  assert jsonb_array_length(r->'list') = 1, 'Admin sieht Ergebnisse';
+  assert jsonb_array_length(workout_results(null, 'Geheim-WOD', a)) = 1, 'Admin sieht Bestwerte';
+  -- Wieder öffentlich machen
+  perform admin_save_event(jsonb_build_object('id', ev, 'title', 'Solo Geheim', 'starts_at', now() + interval '1 day', 'workout', 'Geheim-WOD', 'private', false));
+  perform pg_temp.as_anon();
+  assert (get_event('TEST-CODE', ev, a)->>'private')::boolean = false, 'wieder sichtbar';
+  raise notice 'OK 17: Geheime Termine';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

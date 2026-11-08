@@ -187,7 +187,7 @@ export function eventActions(e) {
   const photo = safeUrl(e.media_url);
   return html`<div class="actions">
     <button class="icon-btn" data-action="calendar">${icons.calendar(18)} In Kalender</button>
-    <button class="icon-btn" data-action="share">${icons.share(18)} Teilen</button>
+    ${e.private ? '' : html`<button class="icon-btn" data-action="share">${icons.share(18)} Teilen</button>`}
     ${photo ? html`<a class="icon-btn" href="${photo}" target="_blank" rel="noopener noreferrer">${icons.link(18)} Album</a>` : ''}
   </div>`;
 }
@@ -213,9 +213,10 @@ export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, 
       </div>` : ''}
       <header class="hero-head">
         ${title}
+        ${e.private ? html`<p class="private-tag">${icons.lock(14)} Nur für dich · die anderen sehen diesen Termin nicht</p>` : ''}
         <p class="when num">${whenLine(e.starts_at)}${rel && !cancelled ? html` <span class="rel">· ${rel}</span>` : ''}</p>
       </header>
-      ${cancelled ? '' : capacityBar(e)}
+      ${cancelled || e.private ? '' : capacityBar(e)}
       ${rsvpBlock(e)}
       ${afterCtas(e)}
     </div>
@@ -234,6 +235,7 @@ export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, 
 export function eventRow(e, meId, href) {
   const c = counts(e);
   const parts = [html`<span class="num">${hhmm(e.starts_at)}</span>`];
+  if (e.private) parts.push(html`<span class="you">nur für dich</span>`);
   if (e.status === 'cancelled') parts.push('abgesagt');
   else {
     parts.push(e.capacity != null ? `${c.yes}/${e.capacity} dabei` : `${c.yes} dabei`);

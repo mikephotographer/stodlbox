@@ -72,6 +72,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     vote_time: ev && ev.vote_deadline ? toTimeInput(ev.vote_deadline) : '20:00',
     note: ev ? ev.note || '' : '',
     media_url: ev ? ev.media_url || '' : '',
+    private: ev ? !!ev.private : false,
     as_template: false,
     prefill: false,
   };
@@ -135,6 +136,9 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
           <label class="field"><span class="label">Max. Teilnehmer</span><input class="input" type="number" name="capacity" min="1" max="200" inputmode="numeric" placeholder="unbegrenzt" value="${f.capacity}"></label>
         </div>
         <label class="field"><span class="label">Titel</span><input class="input" name="title" maxlength="80" required placeholder="z. B. HYROX-Sim Light" value="${f.title}"></label>
+        ${pollOpt ? '' : html`<label class="toggle-row" style="margin-top:18px"><span><strong>Nur für mich</strong>
+          <span class="muted">Geheim: Die anderen sehen diesen Termin nirgends. Zum Allein-Trainieren und Mitschreiben.</span></span>
+          <input type="checkbox" class="switch" name="private" ${f.private ? 'checked' : ''}></label>`}
 
         <div class="field"><span class="label">Workout</span>
           <div class="seg" role="group" aria-label="Workout-Modus">
@@ -169,8 +173,8 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         <div class="form-actions">
           <button class="btn" type="submit">Speichern</button>
           ${ev ? html`<div class="row" style="justify-content:center;gap:24px">
-            <button type="button" class="link" data-action="share">Teilen</button>
-            <a class="link" href="#/t/${ev.id}">So sehen es die Freunde</a>
+            ${ev.private ? '' : html`<button type="button" class="link" data-action="share">Teilen</button>`}
+            <a class="link" href="#/t/${ev.id}">${ev.private ? 'In der App öffnen' : 'So sehen es die Freunde'}</a>
           </div>` : ''}
         </div>
       </form>
@@ -192,6 +196,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     f.duration_min = el.duration_min.value; f.capacity = el.capacity.value;
     f.title = el.title.value; f.note = el.note.value; f.media_url = el.media_url.value;
     f.as_template = el.as_template.checked;
+    f.private = el.private ? el.private.checked : false;
     if (el.prefill) f.prefill = el.prefill.checked;
     if (f.mode === 'fixed') f.workout = el.workout.value;
     else {
@@ -354,6 +359,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
       workout: f.mode === 'fixed' ? f.workout.trim() : null,
       note: f.note.trim(),
       media_url: f.media_url.trim(),
+      private: !pollOpt && f.private,
     };
     if (f.mode === 'vote') {
       const opts = f.options.map((o) => ({ ...o, label: o.label.trim(), workout: o.workout.trim() }));
@@ -376,7 +382,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
           await Promise.all(tpls.filter((t) => !known.has(t.workout.trim())).map((t) => api.saveTemplate(t)));
         }
         toast('Gespeichert');
-        if (!ev) {
+        if (!ev && !payload.private) {
           const go = await confirmSheet('Gespeichert', 'Gleich in die WhatsApp-Gruppe teilen?', 'Teilen');
           if (go) {
             const link = appLink(`/t/${newId}`);

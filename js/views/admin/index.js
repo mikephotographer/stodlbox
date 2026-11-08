@@ -156,6 +156,7 @@ async function renderEvents(root) {
     const t = html`<span class="num">${hhmm(e.starts_at)}</span>`;
     if (e.status === 'cancelled') return html`${t} · abgesagt`;
     const c = counts(e);
+    if (e.private) return html`${t} · <span class="you">nur für dich</span>${e.workout ? '' : html` · <span class="todo">Workout fehlt</span>`}`;
     const parts = [t, e.capacity != null ? `${c.yes}/${e.capacity} dabei` : `${c.yes} dabei`];
     if (c.waitlist) parts.push(`${c.waitlist} auf der Warteliste`);
     if (isOpenVote(e)) {

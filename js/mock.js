@@ -153,11 +153,14 @@ const photoFiles = new Map();
 const PHOTO_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="#ccc"/></svg>');
 const photoUntil = (e) => new Date(Date.parse(e.starts_at) + 7 * 864e5).toISOString();
 function photoAccess(e, memberId) {
-  if (!e || e.status === 'cancelled') return 'none';
+  if (!e || e.status === 'cancelled' || !visible(e)) return 'none';
   if (e.starts_at > nowISO()) return 'early';
   if (nowISO() >= photoUntil(e)) return 'expired';
   return db.rsvps.some((r) => r.event_id === e.id && r.member_id === memberId && r.status === 'yes') ? 'yes' : 'not_participant';
 }
+/** Geheime Termine sieht nur der Admin */
+const visible = (e) => !!e && (!e.private || isAdmin());
+function assertVisible(id) { if (!visible(db.events.find((x) => x.id === id))) throw err('NOT_FOUND'); }
 function requireAdmin() { if (!isAdmin()) throw err('NOT_ADMIN'); }
 function assertMember(id) { if (!db.members.some((m) => m.id === id && m.active)) throw err('BAD_MEMBER'); }
 const cleanName = (n) => String(n || '').replace(/\s+/g, ' ').trim();
@@ -181,6 +184,7 @@ function eventJson(e, memberId) {
   return {
     ...rest,
     started: e.starts_at <= nowISO(),
+    private: !!e.private,
     rsvps: rs,
     options,
     my_vote: (db.votes.find((v) => v.event_id === e.id && v.member_id === memberId) || {}).option_id || null,
@@ -198,13 +202,13 @@ function resultJson(r, memberId) {
 }
 function resultsFor(eventId, memberId) {
   const e = db.events.find((x) => x.id === eventId);
-  if (!e) throw err('NOT_FOUND');
+  if (!visible(e)) throw err('NOT_FOUND');
   const k = workoutKey(e.workout);
   return {
     open: e.status === 'planned' && e.starts_at <= nowISO(),
     list: db.results.filter((r) => r.event_id === eventId).sort((a, b) => (a.updated_at < b.updated_at ? -1 : 1)).map((r) => resultJson(r, memberId)),
     history: !k || !memberId ? [] : db.results.filter((r) => r.member_id === memberId && r.event_id !== eventId)
-      .map((r) => [r, db.events.find((x) => x.id === r.event_id)]).filter(([, x]) => x && workoutKey(x.workout) === k)
+      .map((r) => [r, db.events.find((x) => x.id === r.event_id)]).filter(([, x]) => x && visible(x) && workoutKey(x.workout) === k)
       .sort(([, a], [, b]) => (a.starts_at < b.starts_at ? 1 : -1))
       .map(([r, x]) => ({ ...resultJson(r, memberId), title: x.title, starts_at: x.starts_at })),
   };
@@ -350,6 +354,7 @@ function saveEvent(p) {
     starts_at: p.starts_at, duration_min: +p.duration_min || db.settings.default_duration_min, title,
     workout: mode === 'fixed' ? (String(p.workout || '').trim() || null) : null, workout_mode: mode,
     capacity: cap, media_url: String(p.media_url || '').trim() || null, note: String(p.note || '').trim() || null,
+    private: !!p.private,
   };
   if (!e) {
     e = { id: uid(), series_id: null, series_slot: null, status: 'planned', vote_closed: false, vote_deadline: null, ...fields };
@@ -430,34 +435,34 @@ export const mockApi = {
     return {
       now: nowISO(),
       member_ok: !!memberId && db.members.some((m) => m.id === memberId && m.active),
-      events: db.events.filter((e) => e.starts_at >= start).sort((a, b) => (a.starts_at < b.starts_at ? -1 : 1)).slice(0, 30).map((e) => eventJson(e, memberId)),
+      events: db.events.filter((e) => e.starts_at >= start && visible(e)).sort((a, b) => (a.starts_at < b.starts_at ? -1 : 1)).slice(0, 30).map((e) => eventJson(e, memberId)),
       polls: db.polls.filter((p) => !p.closed).map((p) => pollJson(p, memberId)),
       rules: rulesJson(),
       promotions: db.rsvps.filter((r) => r.member_id === memberId && !r.promotion_seen && r.status === 'yes')
-        .map((r) => db.events.find((e) => e.id === r.event_id)).filter((e) => e && e.starts_at >= start)
+        .map((r) => db.events.find((e) => e.id === r.event_id)).filter((e) => e && visible(e) && e.starts_at >= start)
         .map((e) => ({ event_id: e.id, title: e.title, starts_at: e.starts_at })),
     };
   }),
   getEvent: rd((id, memberId) => {
     assertCode(code());
     const e = db.events.find((x) => x.id === id);
-    if (!e) throw err('NOT_FOUND');
+    if (!visible(e)) throw err('NOT_FOUND');
     return { ...eventJson(e, memberId), rules: rulesJson() };
   }),
   getArchive: rd((offset = 0) => {
     assertCode(code());
     const start = dayStart();
-    const past = db.events.filter((e) => e.starts_at < start).sort((a, b) => (a.starts_at < b.starts_at ? 1 : -1));
+    const past = db.events.filter((e) => e.starts_at < start && visible(e)).sort((a, b) => (a.starts_at < b.starts_at ? 1 : -1));
     return { items: past.slice(offset, offset + 20).map((e) => eventJson(e, null)), has_more: past.length > offset + 20 };
   }),
-  setRsvp: tx((eventId, memberId, status) => { assertCode(code()); return doSetRsvp(eventId, memberId, status, false); }),
+  setRsvp: tx((eventId, memberId, status) => { assertCode(code()); assertVisible(eventId); return doSetRsvp(eventId, memberId, status, false); }),
   ackPromotion: tx((eventId, memberId) => {
     assertCode(code());
     const r = db.rsvps.find((x) => x.event_id === eventId && x.member_id === memberId);
     if (r) r.promotion_seen = true;
   }),
   voteWorkout: tx((eventId, memberId, optionId) => {
-    assertCode(code()); assertMember(memberId);
+    assertCode(code()); assertMember(memberId); assertVisible(eventId);
     const e = db.events.find((x) => x.id === eventId);
     if (!e) throw err('NOT_FOUND');
     if (e.workout_mode !== 'vote' || e.vote_closed || e.status !== 'planned' || e.starts_at <= nowISO() || (e.vote_deadline && e.vote_deadline <= nowISO())) throw err('VOTE_CLOSED');
@@ -484,14 +489,14 @@ export const mockApi = {
     const k = workoutKey(workout);
     if (!k) return [];
     return db.results.map((r) => [r, db.events.find((x) => x.id === r.event_id)])
-      .filter(([, x]) => x && x.status === 'planned' && workoutKey(x.workout) === k)
+      .filter(([, x]) => x && visible(x) && x.status === 'planned' && workoutKey(x.workout) === k)
       .sort(([, a], [, b]) => (a.starts_at < b.starts_at ? 1 : -1))
       .map(([r, x]) => ({ ...resultJson(r, memberId), title: x.title, starts_at: x.starts_at }));
   }),
   saveResult: tx((eventId, memberId, r) => {
     assertCode(code()); assertMember(memberId);
     const e = db.events.find((x) => x.id === eventId);
-    if (!e) throw err('NOT_FOUND');
+    if (!visible(e)) throw err('NOT_FOUND');
     if (e.status === 'cancelled') throw err('CANCELLED');
     if (e.starts_at > nowISO()) throw err('RESULTS_EARLY');
     const text = String(r.text || '').trim();
@@ -560,7 +565,7 @@ export const mockApi = {
   recentPhotoEvents: rd((memberId) => {
     assertCode(code());
     return db.events
-      .filter((e) => e.status !== 'cancelled' && e.starts_at <= nowISO() && nowISO() < photoUntil(e)
+      .filter((e) => e.status !== 'cancelled' && visible(e) && e.starts_at <= nowISO() && nowISO() < photoUntil(e)
         && db.rsvps.some((r) => r.event_id === e.id && r.member_id === memberId && r.status === 'yes'))
       .sort((a, b) => (a.starts_at < b.starts_at ? 1 : -1))
       .map((e) => ({ id: e.id, title: e.title, starts_at: e.starts_at, until: photoUntil(e),
@@ -583,7 +588,7 @@ export const mockApi = {
       ...db.templates.filter((t) => hit(t.title, t.workout, t.tags || []) && (!tagLc || (t.tags || []).some((g) => g.toLowerCase() === tagLc)))
         .sort((a, b) => a.title.localeCompare(b.title, 'de'))
         .map((t) => ({ kind: 'template', id: t.id, title: t.title, workout: t.workout, tags: t.tags || [], date: null })),
-      ...(tagLc ? [] : db.events.filter((e) => e.workout && e.starts_at < nowISO() && hit(e.title, e.workout))
+      ...(tagLc ? [] : db.events.filter((e) => e.workout && visible(e) && e.starts_at < nowISO() && hit(e.title, e.workout))
         .sort((a, b) => (a.starts_at < b.starts_at ? 1 : -1)).slice(0, 30)
         .map((e) => ({ kind: 'event', id: e.id, title: e.title, workout: e.workout, tags: [], date: e.starts_at }))),
     ];
