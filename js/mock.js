@@ -119,6 +119,8 @@ let db;
 function load() {
   try { db = JSON.parse(localStorage.getItem(KEY)); } catch { db = null; }
   if (!db || !db.members) { db = seed(); generateSeries(6); persist(); }
+  if (!db.photos) db.photos = [];
+  if (!db.photoTickets) db.photoTickets = [];
 }
 function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(db)); } catch { /* egal */ }
@@ -130,6 +132,15 @@ const dayStart = () => viennaToISO(toDateInput(new Date()), '00:00');
 const codeOk = (c) => !!c && String(c).trim().toUpperCase() === db.settings.code;
 const isAdmin = () => !!db.session;
 function assertCode(c) { if (!isAdmin() && !codeOk(c)) throw err('BAD_CODE'); }
+const photoFiles = new Map();
+const PHOTO_PLACEHOLDER = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4 3"><rect width="4" height="3" fill="#ccc"/></svg>');
+const photoUntil = (e) => new Date(Date.parse(e.starts_at) + 7 * 864e5).toISOString();
+function photoAccess(e, memberId) {
+  if (!e || e.status === 'cancelled') return 'none';
+  if (e.starts_at > nowISO()) return 'early';
+  if (nowISO() >= photoUntil(e)) return 'expired';
+  return db.rsvps.some((r) => r.event_id === e.id && r.member_id === memberId && r.status === 'yes') ? 'yes' : 'not_participant';
+}
 function requireAdmin() { if (!isAdmin()) throw err('NOT_ADMIN'); }
 function assertMember(id) { if (!db.members.some((m) => m.id === id && m.active)) throw err('BAD_MEMBER'); }
 const cleanName = (n) => String(n || '').replace(/\s+/g, ' ').trim();
@@ -415,6 +426,59 @@ export const mockApi = {
     [...new Set(optionIds)].forEach((id) => db.answers.push({ option_id: id, member_id: memberId }));
     return pollJson(p, memberId);
   }),
+  // ---------- Fotos (Dateien nur im Speicher dieser Seite, Einträge im localStorage) ----------
+  photoUrl: (path) => photoFiles.get(path) || PHOTO_PLACEHOLDER,
+  getEventPhotos: rd((eventId, memberId) => {
+    assertCode(code());
+    const e = db.events.find((x) => x.id === eventId);
+    const a = isAdmin() && e && e.starts_at <= nowISO() && nowISO() < photoUntil(e) ? 'yes' : photoAccess(e, memberId);
+    const rows = db.photos.filter((p) => p.event_id === eventId).sort((x, y) => (x.created_at < y.created_at ? -1 : 1));
+    return {
+      access: a, until: e ? photoUntil(e) : null, count: rows.length,
+      photos: a === 'yes' || isAdmin() ? rows.map((p) => ({ ...p, url: mockApi.photoUrl(p.path), thumb: mockApi.photoUrl(p.thumb_path), name: memberName(p.member_id), mine: p.member_id === memberId })) : [],
+    };
+  }),
+  photoTicket: tx((eventId, memberId) => {
+    assertCode(code());
+    assertMember(memberId);
+    const a = photoAccess(db.events.find((x) => x.id === eventId), memberId);
+    if (a === 'early') throw err('PHOTOS_EARLY');
+    if (a === 'expired') throw err('PHOTOS_EXPIRED');
+    if (a !== 'yes') throw err('PHOTOS_NOT_PARTICIPANT');
+    const n = db.photos.filter((p) => p.event_id === eventId && p.member_id === memberId).length;
+    if (n >= 20) throw err('PHOTOS_LIMIT');
+    const t = { token: uid(), event_id: eventId, member_id: memberId };
+    db.photoTickets.push(t);
+    return { ticket: t.token, prefix: `${eventId}/${t.token}/`, left: 20 - n };
+  }),
+  uploadPhotoFile: async (path, blob) => { photoFiles.set(path, URL.createObjectURL(blob)); return delay(null); },
+  addPhoto: tx((memberId, path, thumbPath, w, h) => {
+    assertCode(code());
+    const [eventId, token] = path.split('/');
+    const t = db.photoTickets.find((x) => x.token === token && x.event_id === eventId && x.member_id === memberId);
+    if (!t) throw err('BAD_TICKET');
+    if (db.photos.filter((p) => p.event_id === eventId && p.member_id === memberId).length >= 20) throw err('PHOTOS_LIMIT');
+    const row = { id: uid(), event_id: eventId, member_id: memberId, path, thumb_path: thumbPath, width: w, height: h, created_at: nowISO() };
+    db.photos.push(row);
+    return row.id;
+  }),
+  deletePhoto: tx((memberId, photoId) => {
+    assertCode(code());
+    const p = db.photos.find((x) => x.id === photoId);
+    if (!p || (!isAdmin() && p.member_id !== memberId)) throw err('NOT_FOUND');
+    db.photos = db.photos.filter((x) => x.id !== photoId);
+  }),
+  recentPhotoEvents: rd((memberId) => {
+    assertCode(code());
+    return db.events
+      .filter((e) => e.status !== 'cancelled' && e.starts_at <= nowISO() && nowISO() < photoUntil(e)
+        && db.rsvps.some((r) => r.event_id === e.id && r.member_id === memberId && r.status === 'yes'))
+      .sort((a, b) => (a.starts_at < b.starts_at ? 1 : -1))
+      .map((e) => ({ id: e.id, title: e.title, starts_at: e.starts_at, until: photoUntil(e),
+        count: db.photos.filter((p) => p.event_id === e.id).length,
+        mine: db.photos.filter((p) => p.event_id === e.id && p.member_id === memberId).length }));
+  }),
+
   listWorkouts: rd(() => {
     assertCode(code());
     return [...db.templates].sort((a, b) => a.title.localeCompare(b.title, 'de'))

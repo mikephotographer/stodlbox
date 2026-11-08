@@ -7,10 +7,12 @@ import { errText, toast } from '../ui.js';
 import { short } from '../format.js';
 import { eventHero, eventRow } from '../components/event.js';
 import { pollRow } from '../components/poll.js';
+import { photoHints } from '../components/photos.js';
 import { topbar, bindFriendActions, handleAuthError } from './common.js';
 
 let data = null;
 let offline = false;
+let recent = []; // Trainings der letzten 7 Tage mit Fotos
 
 const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
 const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
@@ -44,6 +46,8 @@ function view(d) {
       ${next
         ? eventHero(next, { rules: d.rules, meId: me && me.id, compact: true, eyebrow: 'Nächstes Training' })
         : html`<div class="empty-state"><p class="label">Noch kein Termin geplant</p><p>Sobald Mike etwas einträgt, steht es hier.</p></div>`}
+
+      ${photoHints(recent)}
 
       ${polls.length ? html`<section class="section">
         <h2 class="section-title">Terminfindung</h2>
@@ -79,6 +83,7 @@ export async function renderBoard(root) {
       offline = false;
       state.board = d;
       draw();
+      if (me) api.recentPhotoEvents(me.id).then((r) => { recent = r || []; if (data) draw(); }).catch(() => {});
     } catch (e) {
       if (handleAuthError(e)) return;
       if (state.board && !data) {

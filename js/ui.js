@@ -26,6 +26,12 @@ const MESSAGES = {
   NOT_ADMIN: 'Dafür brauchst du Admin-Rechte.',
   INVALID: 'Da passt etwas bei den Eingaben nicht.',
   OFFLINE: 'Keine Verbindung – nochmal probieren, wenn du online bist.',
+  PHOTOS_EARLY: 'Fotos gehen erst ab Trainingsbeginn.',
+  PHOTOS_EXPIRED: 'Die Fotos von diesem Training sind schon gelöscht.',
+  PHOTOS_NOT_PARTICIPANT: 'Fotos können nur die hochladen, die dabei waren.',
+  PHOTOS_LIMIT: 'Du hast schon 20 Fotos von diesem Training hochgeladen.',
+  BAD_TICKET: 'Der Upload hat zu lange gedauert. Bitte nochmal.',
+  NOT_IMAGE: 'Das ist kein Foto, das wir lesen können.',
 };
 
 /** Fehler aus der API in einen verständlichen Satz übersetzen */

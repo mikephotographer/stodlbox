@@ -46,6 +46,22 @@ const real = {
   searchWorkouts: (q, tag) => rpc('search_workouts', { p_code: code(), p_query: q || '', p_tag: tag || null }),
   listWorkouts: () => rpc('list_workouts', { p_code: code() }),
 
+  // ---------- Fotos ----------
+  photoUrl: (path) => `${SUPABASE_URL}/storage/v1/object/public/photos/${path}`,
+  async getEventPhotos(eventId, memberId) {
+    const r = await rpc('get_event_photos', { p_code: code(), p_event_id: eventId, p_member_id: memberId || null });
+    r.photos = (r.photos || []).map((p) => ({ ...p, url: real.photoUrl(p.path), thumb: real.photoUrl(p.thumb_path) }));
+    return r;
+  },
+  photoTicket: (eventId, memberId) => rpc('photo_ticket', { p_code: code(), p_event_id: eventId, p_member_id: memberId }),
+  async uploadPhotoFile(path, blob) {
+    const c = await client();
+    check(await c.storage.from('photos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '604800', upsert: false }));
+  },
+  addPhoto: (memberId, path, thumbPath, w, h) => rpc('add_photo', { p_code: code(), p_member_id: memberId, p_path: path, p_thumb_path: thumbPath, p_width: w, p_height: h }),
+  deletePhoto: (memberId, photoId) => rpc('delete_photo', { p_code: code(), p_member_id: memberId || null, p_photo_id: photoId }),
+  recentPhotoEvents: (memberId) => rpc('recent_photo_events', { p_code: code(), p_member_id: memberId }),
+
   // ---------- Admin: Login ----------
   async session() {
     const c = await client();

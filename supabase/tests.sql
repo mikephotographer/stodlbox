@@ -367,6 +367,86 @@ begin
   raise notice 'OK 10: Workouts für Teilnehmer';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 11) Fotos (setzt Migration 007 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare ev uuid; fut uuid; old uuid; a uuid; b uuid; r jsonb; tk jsonb; p text; pid uuid; names text[];
+begin
+  perform pg_temp.as_system();
+  insert into members (name) values ('Foto Anna') returning id into a;
+  insert into members (name) values ('Foto Bernd') returning id into b;
+  insert into events (title, starts_at) values ('Foto-Training', now() - interval '2 hours') returning id into ev;
+  insert into events (title, starts_at) values ('Zukunft', now() + interval '1 day') returning id into fut;
+  insert into events (title, starts_at) values ('Alt', now() - interval '8 days') returning id into old;
+  insert into rsvps (event_id, member_id, status) values (ev, a, 'yes'), (ev, b, 'no'), (fut, a, 'yes'), (old, a, 'yes');
+
+  perform pg_temp.as_anon();
+  tk := photo_ticket('TEST-CODE', ev, a);
+  p := tk->>'prefix';
+  assert p like ev::text || '/%/', 'Prefix sollte mit der Termin-ID beginnen: ' || p;
+  assert photo_path_ok(p || gen_random_uuid() || '.jpg'), 'Pfad mit gültigem Ticket sollte erlaubt sein';
+  assert not photo_path_ok(fut::text || '/' || (tk->>'ticket') || '/' || gen_random_uuid() || '.jpg'), 'Fremder Termin im Pfad darf nicht gehen';
+  assert not photo_path_ok(p || '../x.jpg'), 'Komische Pfade dürfen nicht gehen';
+
+  pid := add_photo('TEST-CODE', a, p || '11111111-1111-1111-1111-111111111111.jpg', p || '11111111-1111-1111-1111-111111111111_t.jpg', 2000, 1500);
+  assert pid is not null, 'Foto sollte eingetragen sein';
+
+  r := get_event_photos('TEST-CODE', ev, a);
+  assert r->>'access' = 'yes' and jsonb_array_length(r->'photos') = 1 and (r->'photos'->0->>'mine')::boolean, 'Teilnehmer sieht sein Foto: ' || r::text;
+  r := get_event_photos('TEST-CODE', ev, b);
+  assert r->>'access' = 'not_participant' and jsonb_array_length(r->'photos') = 0 and (r->>'count')::int = 1, 'Nicht-Teilnehmer sieht nur die Anzahl: ' || r::text;
+
+  begin
+    perform photo_ticket('TEST-CODE', ev, b);
+    raise exception 'Nicht-Teilnehmer hätte kein Ticket bekommen dürfen';
+  exception when others then assert sqlerrm like '%PHOTOS_NOT_PARTICIPANT%', sqlerrm; end;
+  begin
+    perform photo_ticket('TEST-CODE', fut, a);
+    raise exception 'Vor dem Training hätte es kein Ticket geben dürfen';
+  exception when others then assert sqlerrm like '%PHOTOS_EARLY%', sqlerrm; end;
+  begin
+    perform photo_ticket('TEST-CODE', old, a);
+    raise exception 'Nach 7 Tagen hätte es kein Ticket geben dürfen';
+  exception when others then assert sqlerrm like '%PHOTOS_EXPIRED%', sqlerrm; end;
+  begin
+    perform add_photo('TEST-CODE', b, p || '22222222-2222-2222-2222-222222222222.jpg', p || '22222222-2222-2222-2222-222222222222_t.jpg', 1, 1);
+    raise exception 'Fremdes Ticket hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%BAD_TICKET%', sqlerrm; end;
+
+  r := recent_photo_events('TEST-CODE', a);
+  assert exists (select 1 from jsonb_array_elements(r) x where (x->>'id')::uuid = ev and (x->>'count')::int = 1), 'Board-Hinweis sollte das Training zeigen: ' || r::text;
+  assert not exists (select 1 from jsonb_array_elements(r) x where (x->>'id')::uuid in (fut, old)), 'Zukunft und Alt gehören nicht in den Hinweis';
+
+  begin
+    perform delete_photo('TEST-CODE', b, pid);
+    raise exception 'Fremdes Foto löschen hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%NOT_FOUND%', sqlerrm; end;
+
+  -- Aufräumen: altes Foto + Datei, gelöschtes Foto, verwaiste Datei
+  perform pg_temp.as_system();
+  insert into event_photos (event_id, member_id, path, thumb_path) values (old, a, old || '/x/alt.jpg', old || '/x/alt_t.jpg');
+  insert into storage.objects (bucket_id, name, created_at) values
+    ('photos', p || '11111111-1111-1111-1111-111111111111.jpg', now() - interval '2 hours'),
+    ('photos', p || '11111111-1111-1111-1111-111111111111_t.jpg', now() - interval '2 hours'),
+    ('photos', old || '/x/alt.jpg', now() - interval '8 days'),
+    ('photos', p || 'verwaist.jpg', now() - interval '2 hours'),
+    ('photos', p || 'frisch.jpg', now());
+  names := purge_photos();
+  assert old || '/x/alt.jpg' = any(names), 'Alte Datei sollte weg: ' || names::text;
+  assert p || 'verwaist.jpg' = any(names), 'Verwaiste Datei sollte weg';
+  assert not (p || 'frisch.jpg' = any(names)), 'Gerade hochgeladene Datei darf noch nicht weg';
+  assert not (p || '11111111-1111-1111-1111-111111111111.jpg' = any(names)), 'Aktuelles Foto darf nicht weg';
+  assert not exists (select 1 from event_photos where event_id = old), 'Eintrag des alten Trainings sollte weg sein';
+
+  perform pg_temp.as_anon();
+  perform delete_photo('TEST-CODE', a, pid);
+  perform pg_temp.as_system();
+  names := purge_photos();
+  assert p || '11111111-1111-1111-1111-111111111111.jpg' = any(names), 'Gelöschtes Foto sollte beim Aufräumen weg';
+  raise notice 'OK 11: Fotos';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

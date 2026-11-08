@@ -171,7 +171,7 @@ export function eventActions(e) {
   return html`<div class="actions">
     <button class="icon-btn" data-action="calendar">${icons.calendar(18)} In Kalender</button>
     <button class="icon-btn" data-action="share">${icons.share(18)} Teilen</button>
-    ${photo ? html`<a class="icon-btn" href="${photo}" target="_blank" rel="noopener noreferrer">${icons.photo(18)} Fotos</a>` : ''}
+    ${photo ? html`<a class="icon-btn" href="${photo}" target="_blank" rel="noopener noreferrer">${icons.link(18)} Album</a>` : ''}
   </div>`;
 }
 

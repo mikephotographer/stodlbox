@@ -6,20 +6,25 @@ import { state } from '../state.js';
 import { errText, toast } from '../ui.js';
 import { eventHero } from '../components/event.js';
 import { topbar, bindFriendActions, handleAuthError } from './common.js';
+import { photoSection } from '../components/photos.js';
 
 export async function renderEvent(root, id) {
   const me = state.member;
   let ev = null;
+  const photos = photoSection(id, me);
   const draw = () => {
     document.title = `STODLBOX · ${ev.title}`;
     mount(root, html`${topbar({ refresh: true })}
-      <main id="main">${eventHero(ev, { rules: ev.rules || [], meId: me && me.id, back: html`<a class="back" href="#/">${icons.back()} Übersicht</a>` })}</main>`);
+      <main id="main">${eventHero(ev, { rules: ev.rules || [], meId: me && me.id, back: html`<a class="back" href="#/">${icons.back()} Übersicht</a>` })}
+        <section class="section ph-section" id="photos" hidden></section></main>`);
+    photos.paint();
   };
 
   async function reload({ quiet = false } = {}) {
     try {
       ev = await api.getEvent(id, me && me.id);
       draw();
+      photos.load();
     } catch (e) {
       if (handleAuthError(e)) return;
       if (!quiet || !ev) {

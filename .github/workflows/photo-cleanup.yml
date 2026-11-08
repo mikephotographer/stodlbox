@@ -1,0 +1,37 @@
+# Löscht jeden Tag die Fotos von Trainings, die älter als 7 Tage sind
+# (plus gelöschte Fotos und abgebrochene Uploads).
+# Benötigt die Repository-Secrets SUPABASE_URL und SUPABASE_SERVICE_KEY (siehe SETUP.md, Fotos).
+name: Fotos aufräumen
+
+on:
+  schedule:
+    - cron: '23 2 * * *'   # täglich 02:23 UTC
+  workflow_dispatch:
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Alte Fotos löschen
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SUPABASE_URL" ] || [ -z "$KEY" ]; then
+            echo "Secrets SUPABASE_URL / SUPABASE_SERVICE_KEY fehlen – siehe SETUP.md"; exit 1
+          fi
+          auth=()
+          case "$KEY" in eyJ*) auth=(-H "Authorization: Bearer $KEY");; esac
+          # 1. Datenbank räumt auf und nennt die Dateien, die weg können
+          names=$(curl -sS --fail-with-body -X POST "$SUPABASE_URL/rest/v1/rpc/purge_photos" \
+            -H "apikey: $KEY" "${auth[@]}" -H "Content-Type: application/json" -d '{}')
+          count=$(echo "$names" | jq 'length')
+          echo "$count Dateien zu löschen"
+          [ "$count" = "0" ] && exit 0
+          # 2. Dateien über die Storage-Schnittstelle löschen (in Paketen zu 500)
+          echo "$names" | jq -c '[_nwise(500)] | .[] | {prefixes: .}' | while read -r body; do
+            curl -sS --fail-with-body -o /dev/null -X DELETE "$SUPABASE_URL/storage/v1/object/photos" \
+              -H "apikey: $KEY" "${auth[@]}" -H "Content-Type: application/json" -d "$body"
+          done
+          echo "Fertig"

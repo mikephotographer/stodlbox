@@ -117,6 +117,18 @@ Supabase pausiert Gratis-Projekte nach ca. 7 Tagen ohne Aktivität. Der Workflow
 
 Testen: **Actions → Supabase Keepalive → Run workflow**. Der Lauf muss grün werden.
 
+## 9b. Fotos: tägliches Aufräumen
+
+Fotos werden 7 Tage nach dem Training gelöscht. Das macht der GitHub-Auftrag `.github/workflows/photo-cleanup.yml` jede Nacht.
+Er braucht den geheimen Supabase-Schlüssel (darf nie ins Repo):
+
+1. Supabase → Project Settings → API Keys → den **Secret key** (bzw. bei den „Legacy“-Schlüsseln **service_role**) kopieren.
+2. GitHub → Repo → Settings → Secrets and variables → Actions → New repository secret:
+   Name `SUPABASE_SERVICE_KEY`, Wert = der Schlüssel. (`SUPABASE_URL` gibt es schon vom Keepalive.)
+3. Test: GitHub → Actions → „Fotos aufräumen“ → Run workflow. Grün = passt.
+
+Der Speicher-Bucket `photos` wird von `supabase/migrations/007_photos.sql` selbst angelegt.
+
 ## 10. Erster Login als Admin
 
 1. `https://<dein-github-name>.github.io/stodlbox/#/admin` öffnen.
