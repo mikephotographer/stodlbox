@@ -59,6 +59,7 @@ function view(d) {
     </main>
     <footer class="footer">
       <a href="#/archiv">Archiv</a>
+      <a href="#/admin">Admin</a>
     </footer>`;
 }
 

@@ -67,8 +67,27 @@ async function takeCodeFromUrl() {
   }
 }
 
+const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+
+/** Manifest passend zum Bereich: Wer im Admin „Zum Home-Bildschirm“ wählt, bekommt eine App, die im Admin startet. */
+function syncManifest() {
+  const adminArea = parseHash().path.startsWith('/admin');
+  const link = document.querySelector('link[rel="manifest"]');
+  const href = adminArea ? 'manifest-admin.webmanifest' : 'manifest.webmanifest';
+  if (link && link.getAttribute('href') !== href) link.setAttribute('href', href);
+  const title = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+  if (title) title.setAttribute('content', adminArea ? 'Stodl Admin' : 'STODLBOX');
+}
+
 async function boot() {
   try { await api.handleAuthRedirect(); } catch { /* Login-Link ungültig → normaler Login */ }
+  // Installierte App: Wer hier zuletzt als Admin angemeldet war, startet im Admin-Bereich.
+  const { path } = parseHash();
+  if (isStandalone() && state.flag('adminHome') && (path === '/' || path === '')) {
+    history.replaceState(null, '', location.pathname + location.search + '#/admin');
+  }
+  syncManifest();
+  window.addEventListener('hashchange', syncManifest);
   await startRouter([
     [/^\/$/, friend(renderBoard)],
     [/^\/t\/([\w-]+)$/, friend(renderEvent)],

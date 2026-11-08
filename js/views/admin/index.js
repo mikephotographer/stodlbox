@@ -115,7 +115,7 @@ function renderLogin(root, { notAdmin, email } = {}) {
     const a = ev.target.closest('[data-action]');
     if (!a) return;
     if (a.dataset.action === 'login-back') { fMail.hidden = false; fCode.hidden = true; }
-    if (a.dataset.action === 'logout') { await api.signOut(); renderLogin(root); }
+    if (a.dataset.action === 'logout') { await api.signOut(); state.setFlag('adminHome', false); renderLogin(root); }
   };
 }
 
@@ -267,6 +267,7 @@ function renderMore(root) {
   root.onclick = async (ev) => {
     if (!ev.target.closest('[data-action="logout"]')) return;
     await api.signOut();
+    state.setFlag('adminHome', false);
     toast('Abgemeldet');
     navigate('/admin', { replace: true });
   };
@@ -287,6 +288,7 @@ export async function renderAdmin(root, sub) {
   let ok = false;
   try { ok = await api.isAdmin(); } catch { ok = false; }
   if (!ok) return renderLogin(root, { notAdmin: true, email: session.email });
+  state.setFlag('adminHome', true);
 
   // Gespeicherten Gruppen-Code einmal pro Sitzung prüfen. Der Admin kommt auch ohne gültigen Code
   // an alle Daten – ein veralteter Code (z. B. aus dem Demo-Modus) würde sonst in jedem geteilten Link landen.
