@@ -50,15 +50,15 @@ function renderLogin(root, { notAdmin, email } = {}) {
     <h1>Admin-Login</h1>
     ${notAdmin ? html`<div class="banner"><p>${email} hat keine Admin-Rechte.</p></div>
       <button class="btn ghost" data-action="logout">Abmelden</button>` : html`
-    <p class="lead">Du bekommst eine Mail mit einem Login-Link. Öffne ihn am besten auf demselben Gerät.</p>
+    <p class="lead">Du bekommst eine Mail mit einem Code, den du hier eintippst.</p>
     <form id="login-mail" novalidate>
       <label class="field"><span class="label">E-Mail</span>
         <input class="input" type="email" name="email" autocomplete="email" required value="${email || ''}"></label>
-      <div class="form-actions"><button class="btn" type="submit">Login-Link schicken</button></div>
+      <div class="form-actions"><button class="btn" type="submit">Code schicken</button></div>
     </form>
     <form id="login-code" novalidate hidden>
-      <div class="banner">${icons.check(20)}<p>Mail ist unterwegs. Tipp in der Mail auf <strong>„Sign in“</strong> – du landest dann direkt im Admin-Bereich.</p></div>
-      <label class="field"><span class="label">Oder: Code aus der Mail (falls einer drinsteht)</span>
+      <div class="banner">${icons.check(20)}<p>Mail ist unterwegs. Gib den Code aus der Mail ein. Der Link in der Mail funktioniert auch, öffnet aber evtl. einen anderen Browser.</p></div>
+      <label class="field"><span class="label">Code aus der Mail</span>
         <input class="input" name="token" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
       <div class="form-actions"><button class="btn" type="submit">Einloggen</button>
         <button class="link" type="button" data-action="login-back">andere mail</button></div>
@@ -93,7 +93,7 @@ function renderLogin(root, { notAdmin, email } = {}) {
             : wait
               ? `Gerade erst eine Mail geschickt. Nochmal in ${wait[1]} Sekunden möglich – schau zuerst ins Postfach (auch Spam).`
               : /email rate limit|over_email_send_rate_limit|429/i.test(msg)
-                ? 'Supabase verschickt höchstens 2 Login-Mails pro Stunde. Der letzte Link in deinem Postfach gilt noch eine Stunde – sonst bitte später nochmal.'
+                ? 'Zu viele Login-Mails in kurzer Zeit. Nimm den Code aus der letzten Mail oder probier es später nochmal.'
                 : errText(e, 'Mail konnte nicht verschickt werden. Kurz warten und nochmal probieren.');
         }
       });
