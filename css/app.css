@@ -448,3 +448,6 @@ dialog.lightbox .lb-top .icon-btn{color:#fff;border:0;background:none}
 .lb-actions{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 16px 0;max-width:480px;width:100%;margin:0 auto}
 .lb-actions .btn svg{margin-right:8px}
 .lb-actions .link.danger{color:#ff7a70}
+.ph-cta{margin-top:16px}
+.ph-cta svg{margin-right:10px}
+.ph-section{scroll-margin-top:16px}

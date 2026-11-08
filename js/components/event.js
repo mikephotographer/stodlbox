@@ -166,6 +166,14 @@ export function peopleList(e, meId) {
   </div>`;
 }
 
+/** Ab Trainingsbeginn bis 7 Tage danach: Knopf zu den Fotos für alle, die dabei waren */
+function photoCta(e) {
+  if (e.status === 'cancelled' || e.my_rsvp !== 'yes') return '';
+  const start = Date.parse(e.starts_at);
+  if (Date.now() < start || Date.now() >= start + 7 * 864e5) return '';
+  return html`<a class="btn ph-cta" href="#/t/${e.id}?fotos=1">${icons.photo(22)} Fotos hochladen &amp; ansehen</a>`;
+}
+
 export function eventActions(e) {
   const photo = safeUrl(e.media_url);
   return html`<div class="actions">
@@ -195,6 +203,7 @@ export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, 
       </header>
       ${cancelled ? '' : capacityBar(e)}
       ${rsvpBlock(e)}
+      ${photoCta(e)}
     </div>
     <div class="hero-body">
     ${peopleList(e, meId)}

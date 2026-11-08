@@ -9,7 +9,7 @@ import { uploadPhotos, savePhotos, prefetch } from '../photos.js';
 
 const untilText = (t) => `${wdShort(t)}, ${dm(t)}`;
 
-export function photoSection(eventId, member) {
+export function photoSection(eventId, member, { onLoad } = {}) {
   let data = null;
   let progress = null; // { done, total }
   let admin = false;
@@ -50,6 +50,7 @@ export function photoSection(eventId, member) {
       data = await api.getEventPhotos(eventId, member && member.id);
     } catch { /* ohne Fotos weiter */ }
     paint();
+    if (onLoad) { const f = onLoad; onLoad = null; f(); }
   }
 
   async function onChange(ev) {

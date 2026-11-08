@@ -7,11 +7,18 @@ import { errText, toast } from '../ui.js';
 import { eventHero } from '../components/event.js';
 import { topbar, bindFriendActions, handleAuthError } from './common.js';
 import { photoSection } from '../components/photos.js';
+import { route } from '../router.js';
 
 export async function renderEvent(root, id) {
   const me = state.member;
   let ev = null;
-  const photos = photoSection(id, me);
+  const photos = photoSection(id, me, { onLoad: () => {
+    // Vom „Fotos“-Knopf gekommen: direkt zum Foto-Bereich
+    if (route().query.get('fotos') !== '1') return;
+    history.replaceState(null, '', location.pathname + location.search + '#/t/' + id);
+    const el = document.getElementById('photos');
+    if (el && !el.hidden) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } });
   const draw = () => {
     document.title = `STODLBOX · ${ev.title}`;
     mount(root, html`${topbar({ refresh: true })}
