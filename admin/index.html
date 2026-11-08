@@ -5,7 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="robots" content="noindex, nofollow">
   <title>Stodl Admin</title>
-  <!-- Eigene Einstiegsadresse ohne #, damit „Zum Home-Bildschirm“ im Admin startet. -->
+  <!-- Eigene Einstiegsadresse ohne #, damit „Zum Home-Bildschirm“ eine App anlegt, die im Admin startet.
+       Im Browser bleibt diese Seite stehen (sonst übernimmt Safari beim Hinzufügen die normale Startseite).
+       In der installierten App geht es sofort in den Admin-Bereich. -->
   <meta name="theme-color" content="#1a1a1a">
   <link rel="manifest" href="../manifest-admin.webmanifest">
   <link rel="icon" type="image/png" sizes="192x192" href="../assets/icons/icon-192.png">
@@ -14,10 +16,44 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Stodl Admin">
-  <style>body{margin:0;background:#1a1a1a;color:#fff;font:16px system-ui,sans-serif;padding:40px 16px}</style>
-  <script>location.replace('../#/admin');</script>
+  <script>
+    if (navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+      location.replace('../#/admin');
+    }
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600&family=Inter:wght@400;600&display=swap">
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;background:#1a1a1a;color:#fff;font:16px/1.5 Inter,system-ui,sans-serif;
+      padding:calc(24px + env(safe-area-inset-top)) 16px calc(32px + env(safe-area-inset-bottom))}
+    main{max-width:480px;margin:0 auto}
+    .logo,h1,.btn{font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:600;text-transform:uppercase}
+    .logo{font-size:26px;letter-spacing:.02em}.logo b{color:#f5c400;font-weight:600}
+    h1{font-size:44px;line-height:.95;margin:36px 0 14px}
+    p{color:#dcdcdc;margin:0 0 14px}
+    ol{margin:0 0 28px;padding-left:22px;color:#dcdcdc}
+    li{margin:0 0 8px}
+    strong{color:#fff}
+    .btn{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:100px;
+      font-size:19px;letter-spacing:.05em;text-decoration:none}
+    .btn.main{background:#f5c400;color:#1a1a1a}
+    .btn.ghost{border:1px solid #fff;color:#fff;margin-top:10px}
+  </style>
 </head>
 <body>
-  <p>Admin-Bereich wird geöffnet … <a href="../#/admin" style="color:#f5c400">Weiter</a></p>
+  <main>
+    <div class="logo">STODL<b>BOX</b></div>
+    <h1>Admin als App</h1>
+    <p>Damit die App am Home-Bildschirm direkt im Admin-Bereich startet, leg sie <strong>von dieser Seite aus</strong> an:</p>
+    <ol>
+      <li>Unten (Safari) bzw. oben (Chrome) auf <strong>Teilen</strong> tippen.</li>
+      <li><strong>Zum Home-Bildschirm</strong> wählen. Als Name sollte „Stodl Admin“ stehen.</li>
+      <li>Die neue App öffnen und mit dem Code aus der Mail anmelden.</li>
+    </ol>
+    <a class="btn main" href="../#/admin">Admin im Browser öffnen</a>
+    <a class="btn ghost" href="../#/">Zur Übersicht</a>
+  </main>
 </body>
 </html>

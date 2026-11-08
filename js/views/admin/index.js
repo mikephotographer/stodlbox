@@ -285,6 +285,7 @@ function renderMore(root) {
     <ul class="list">
       <li><a class="list-item" href="#/admin/leute"><span class="grow"><span class="t">Leute</span><span class="m">Namen umbenennen, zusammenführen, deaktivieren</span></span><span class="chev">${icons.chevron()}</span></a></li>
       <li><a class="list-item" href="#/admin/einstellungen"><span class="grow"><span class="t">Einstellungen</span><span class="m">Gruppen-Code, Einladungslink, Standardwerte</span></span><span class="chev">${icons.chevron()}</span></a></li>
+      <li><a class="list-item" href="admin/"><span class="grow"><span class="t">Admin als App installieren</span><span class="m">Home-Bildschirm-App, die direkt im Admin startet</span></span><span class="chev">${icons.chevron()}</span></a></li>
       <li><a class="list-item" href="#/"><span class="grow"><span class="t">Übersicht ansehen</span><span class="m">So sehen es die Freunde</span></span><span class="chev">${icons.chevron()}</span></a></li>
       <li><button class="list-item" data-action="logout"><span class="grow"><span class="t">Abmelden</span></span></button></li>
     </ul>`);
