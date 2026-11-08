@@ -64,8 +64,10 @@ Unter **Integrations → Cron → Jobs** sollten zwei Jobs stehen: `stodlbox-clo
 3. **Authentication → URL Configuration:**
    - **Site URL:** `https://<dein-github-name>.github.io/stodlbox/`
    - **Redirect URLs:** dieselbe Adresse hinzufügen.
-4. **Authentication → Emails → Magic Link** – Vorlage anpassen, damit der **6-stellige Code** in der Mail steht
-   (der Code funktioniert auch in der installierten App am Handy, der Link nicht immer):
+4. **Optional – nur mit eigenem Mailserver (SMTP):** Supabase erlaubt Änderungen an den Mail-Vorlagen nur mit eigenem SMTP
+   (**Authentication → Emails → SMTP Settings**). Ohne SMTP kommt die Standard-Mail mit **Login-Link** – das reicht.
+   Mit SMTP kann man unter **Emails → Magic link or OTP** den 6-stelligen Code ergänzen
+   (praktisch, weil der Code auch in der installierten Home-Bildschirm-App funktioniert):
    - **Subject:** `Dein STODLBOX-Login`
    - **Body:**
      ```html

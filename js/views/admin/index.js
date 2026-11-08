@@ -51,15 +51,16 @@ function renderLogin(root, { notAdmin, email } = {}) {
     <h1>Login</h1>
     ${notAdmin ? html`<div class="banner"><p>${email} hat keine Admin-Rechte.</p></div>
       <button class="btn ghost" data-action="logout">ABMELDEN</button>` : html`
-    <p class="lead">Du bekommst eine Mail mit einem 6-stelligen Code (und einem Link).</p>
+    <p class="lead">Du bekommst eine Mail mit einem Login-Link. Öffne ihn am besten auf demselben Gerät.</p>
     <form id="login-mail" novalidate>
       <label class="field"><span class="label">E-Mail</span>
         <input class="input" type="email" name="email" autocomplete="email" required value="${email || ''}"></label>
-      <div class="form-actions"><button class="btn" type="submit">CODE SCHICKEN</button></div>
+      <div class="form-actions"><button class="btn" type="submit">LOGIN-LINK SCHICKEN</button></div>
     </form>
     <form id="login-code" novalidate hidden>
-      <label class="field"><span class="label">Code aus der Mail</span>
-        <input class="input" name="token" inputmode="numeric" autocomplete="one-time-code" maxlength="10" required></label>
+      <div class="banner">${icons.check(20)}<p>Mail ist unterwegs. Tipp in der Mail auf <strong>„Sign in“</strong> – du landest dann direkt im Admin-Bereich.</p></div>
+      <label class="field"><span class="label">Oder: Code aus der Mail (falls einer drinsteht)</span>
+        <input class="input" name="token" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
       <div class="form-actions"><button class="btn" type="submit">EINLOGGEN</button>
         <button class="link" type="button" data-action="login-back">andere mail</button></div>
     </form>
