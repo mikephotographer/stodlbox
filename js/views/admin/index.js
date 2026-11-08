@@ -86,9 +86,15 @@ function renderLogin(root, { notAdmin, email } = {}) {
           fCode.elements.token.focus();
           toast('Mail ist unterwegs');
         } catch (e) {
-          errEl.textContent = /signups not allowed|not found|Signups/i.test(e.message)
+          const msg = `${e && e.code} ${e && e.message} ${e && e.status}`;
+          const wait = msg.match(/after (\d+) seconds/i);
+          errEl.textContent = /signups not allowed|not found|Signups/i.test(msg)
             ? 'Diese Mail ist nicht als Admin angelegt.'
-            : errText(e, 'Mail konnte nicht verschickt werden. Kurz warten und nochmal probieren.');
+            : wait
+              ? `Gerade erst eine Mail geschickt. Nochmal in ${wait[1]} Sekunden möglich – schau zuerst ins Postfach (auch Spam).`
+              : /email rate limit|over_email_send_rate_limit|429/i.test(msg)
+                ? 'Supabase verschickt höchstens 2 Login-Mails pro Stunde. Der letzte Link in deinem Postfach gilt noch eine Stunde – sonst bitte später nochmal.'
+                : errText(e, 'Mail konnte nicht verschickt werden. Kurz warten und nochmal probieren.');
         }
       });
     };
