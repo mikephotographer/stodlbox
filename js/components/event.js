@@ -192,11 +192,16 @@ export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, 
   const openVote = isOpenVote(e);
   const canVote = !!meId && openVote && !voteEnded(e) && !e.started && !cancelled;
   const rel = relText(e.starts_at);
-  const title = headingTag === 'h1' ? html`<h1 class="title">${e.title}</h1>` : html`<h2 class="title">${e.title}</h2>`;
+  // Auf dem Board (compact) führt der Titel zur Detailseite
+  const inner = compact ? html`<a class="title-link" href="#/t/${e.id}">${e.title}</a>` : e.title;
+  const title = headingTag === 'h1' ? html`<h1 class="title">${inner}</h1>` : html`<h2 class="title">${inner}</h2>`;
   return html`<article class="hero ${cancelled ? 'cancelled' : ''}" data-event="${e.id}">
     <div class="band hero-band">
       ${back}
-      ${eyebrow ? html`<span class="label eyebrow">${eyebrow}</span>` : ''}
+      ${eyebrow || compact ? html`<div class="eyebrow-row">
+        ${eyebrow ? html`<span class="label eyebrow">${eyebrow}</span>` : html`<span></span>`}
+        ${compact ? html`<a class="details-link" href="#/t/${e.id}">Details ${icons.chevron(14)}</a>` : ''}
+      </div>` : ''}
       <header class="hero-head">
         ${title}
         <p class="when num">${whenLine(e.starts_at)}${rel && !cancelled ? html` <span class="rel">· ${rel}</span>` : ''}</p>
