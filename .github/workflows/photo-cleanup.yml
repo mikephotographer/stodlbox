@@ -21,6 +21,9 @@ jobs:
           if [ -z "$SUPABASE_URL" ] || [ -z "$KEY" ]; then
             echo "Secrets SUPABASE_URL / SUPABASE_SERVICE_KEY fehlen – siehe SETUP.md"; exit 1
           fi
+          # Leerzeichen/Zeilenumbrüche vom Kopieren entfernen (sonst lehnt curl die Kopfzeile ab)
+          KEY=$(printf '%s' "$KEY" | tr -d '[:space:]')
+          SUPABASE_URL=$(printf '%s' "$SUPABASE_URL" | tr -d '[:space:]')
           auth=()
           case "$KEY" in eyJ*) auth=(-H "Authorization: Bearer $KEY");; esac
           # 1. Datenbank räumt auf und nennt die Dateien, die weg können
