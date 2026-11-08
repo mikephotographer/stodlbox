@@ -447,7 +447,7 @@ export const mockApi = {
     const rows = db.photos.filter((p) => p.event_id === eventId).sort((x, y) => (x.created_at < y.created_at ? -1 : 1));
     return {
       access: a, until: e ? photoUntil(e) : null, count: rows.length,
-      photos: a === 'yes' || isAdmin() ? rows.map((p) => ({ ...p, url: mockApi.photoUrl(p.path), thumb: mockApi.photoUrl(p.thumb_path), name: memberName(p.member_id), mine: p.member_id === memberId })) : [],
+      photos: a === 'yes' || isAdmin() ? rows.map((p) => ({ ...p, url: mockApi.photoUrl(p.path), thumb: mockApi.photoUrl(p.thumb_path), display: p.display_path ? mockApi.photoUrl(p.display_path) : null, name: memberName(p.member_id), mine: p.member_id === memberId })) : [],
     };
   }),
   photoTicket: tx((eventId, memberId) => {
@@ -466,7 +466,7 @@ export const mockApi = {
     return { ticket: t.token, prefix: `${eventId}/${t.token}/`, left: Math.max(0, 20 - np), left_videos: Math.max(0, 3 - nv) };
   }),
   uploadPhotoFile: async (path, blob) => { photoFiles.set(path, URL.createObjectURL(blob)); return delay(null); },
-  addMedia: tx((memberId, path, thumbPath, w, h, kind = 'photo', duration = null) => {
+  addMedia: tx((memberId, path, thumbPath, w, h, kind = 'photo', duration = null, displayPath = null) => {
     assertCode(code());
     const [eventId, token] = path.split('/');
     const t = db.photoTickets.find((x) => x.token === token && x.event_id === eventId && x.member_id === memberId);
@@ -474,7 +474,7 @@ export const mockApi = {
     const n = db.photos.filter((p) => p.event_id === eventId && p.member_id === memberId && (p.kind || 'photo') === kind).length;
     if (kind === 'photo' && n >= 20) throw err('PHOTOS_LIMIT');
     if (kind === 'video' && n >= 3) throw err('VIDEO_LIMIT');
-    const row = { id: uid(), event_id: eventId, member_id: memberId, path, thumb_path: thumbPath, width: w, height: h, kind, duration_s: duration, created_at: nowISO() };
+    const row = { id: uid(), event_id: eventId, member_id: memberId, path, thumb_path: thumbPath, display_path: displayPath, width: w, height: h, kind, duration_s: duration, created_at: nowISO() };
     db.photos.push(row);
     return row.id;
   }),

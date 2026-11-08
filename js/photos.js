@@ -1,8 +1,9 @@
 // Fotos: am Handy verkleinern, hochladen, sichern (Teilen-Menü bzw. Download).
 import { api } from './api.js';
 
-const BIG = 2000; // längste Kante
+const BIG = 2000; // längste Kante der Ansichts-Version
 const THUMB = 480;
+const ORIGINAL_MAX = 4096; // nur für Nicht-JPEG (Canvas-Grenze am iPhone)
 
 function loadImage(file) {
   return new Promise((resolve, reject) => {
@@ -107,13 +108,21 @@ async function uploadOne(f, ticket, memberId) {
     return;
   }
   const { img, done } = await loadImage(f);
-  const big = await toJpeg(img, img.naturalWidth, img.naturalHeight, BIG, 0.82);
-  const small = await toJpeg(img, img.naturalWidth, img.naturalHeight, THUMB, 0.72);
+  const W = img.naturalWidth;
+  const H = img.naturalHeight;
+  // Original unverändert hochladen (JPEG). Andere Formate (z. B. PNG) in volle Auflösung als JPEG.
+  const isJpeg = /^image\/jpe?g$/i.test(f.type) || (!f.type && /\.jpe?g$/i.test(f.name || ''));
+  let original = isJpeg ? f : (await toJpeg(img, W, H, ORIGINAL_MAX, 0.92)).blob;
+  if (original.size > MAX_VIDEO_MB * 1024 * 1024) original = (await toJpeg(img, W, H, ORIGINAL_MAX, 0.9)).blob;
+  const view = await toJpeg(img, W, H, BIG, 0.82); // zum Ansehen in der App
+  const small = await toJpeg(img, W, H, THUMB, 0.72); // Vorschau im Raster
   done();
   const path = `${ticket.prefix}${id}.jpg`;
-  await api.uploadPhotoFile(path, big.blob);
+  const display = `${ticket.prefix}${id}_m.jpg`;
+  await api.uploadPhotoFile(path, original.type === 'image/jpeg' ? original : new Blob([original], { type: 'image/jpeg' }));
+  await api.uploadPhotoFile(display, view.blob);
   await api.uploadPhotoFile(thumb, small.blob);
-  await api.addMedia(memberId, path, thumb, big.width, big.height, 'photo', null);
+  await api.addMedia(memberId, path, thumb, W, H, 'photo', null, display);
 }
 
 /**

@@ -5,7 +5,7 @@ import { icons } from '../icons.js';
 import { api } from '../api.js';
 import { toast, errText, confirmSheet } from '../ui.js';
 import { wdShort, dm } from '../format.js';
-import { uploadPhotos, savePhotos, prefetch, MAX_VIDEO_MB } from '../photos.js';
+import { uploadPhotos, savePhotos, MAX_VIDEO_MB } from '../photos.js';
 
 const untilText = (t) => `${wdShort(t)}, ${dm(t)}`;
 const isVid = (p) => p.kind === 'video';
@@ -45,7 +45,7 @@ export function photoSection(eventId, member, { onLoad } = {}) {
         ? html`<div class="ph-progress" role="status"><span>Lade hoch … ${progress.done} von ${progress.total}${progress.video ? ' · Video, kann etwas dauern' : ''}</span><div class="tr-bar"><span style="transform:scaleX(${progress.total ? progress.done / progress.total : 0})"></span></div></div>`
         : html`<label class="btn ghost ph-add">${icons.photo(20)} Fotos &amp; Videos hinzufügen
             <input type="file" accept="image/*,video/mp4,video/quicktime,video/*" multiple class="sr-only" data-ph="pick"></label>`}
-      <p class="hint">Bleiben bis ${untilText(data.until)}, dann werden sie automatisch gelöscht. Pro Person bis zu 20 Fotos und 3 kurze Videos (max. ${MAX_VIDEO_MB} MB, etwa 30 Sekunden in Full HD).</p>`;
+      <p class="hint">Bleiben bis ${untilText(data.until)}, dann werden sie automatisch gelöscht. Fotos in voller Auflösung. Pro Person bis zu 20 Fotos und 3 kurze Videos (max. ${MAX_VIDEO_MB} MB, etwa 30 Sekunden in Full HD).</p>`;
   }
 
   function paint() {
@@ -121,7 +121,7 @@ export function photoSection(eventId, member, { onLoad } = {}) {
         <div class="lb-stage">
           ${isVid(p)
             ? html`<video src="${p.url}" poster="${p.thumb}" controls playsinline preload="none" ${p.width ? html`width="${p.width}" height="${p.height}"` : ''}></video>`
-            : html`<img src="${p.url}" alt="Foto ${i + 1}${p.name ? ` von ${p.name}` : ''}" ${p.width ? html`width="${p.width}" height="${p.height}"` : ''}>`}
+            : html`<img src="${p.display || p.url}" alt=""Foto ${i + 1}${p.name ? ` von ${p.name}` : ''}" ${p.width ? html`width="${p.width}" height="${p.height}"` : ''}>`}
           ${data.photos.length > 1 ? html`<button class="lb-nav prev" data-lb="prev" aria-label="Vorheriges Foto">${icons.back(26)}</button>
             <button class="lb-nav next" data-lb="next" aria-label="Nächstes Foto">${icons.chevron(26)}</button>` : ''}
         </div>
@@ -129,8 +129,7 @@ export function photoSection(eventId, member, { onLoad } = {}) {
           <button class="btn" data-lb="save">${icons.download(20)} Sichern</button>
           ${canDelete ? html`<button class="link danger" data-lb="delete">${isVid(p) ? 'Video' : 'Foto'} löschen</button>` : ''}
         </div>`);
-      // Fotos vorladen, damit „Sichern“ am iPhone direkt das Teilen-Menü öffnet. Videos nicht (Datenvolumen).
-      if (!isVid(p)) prefetch([p]);
+      // Originale nicht vorladen (Datenvolumen). Am iPhone kann „Sichern“ deshalb einen zweiten Tipp brauchen.
     };
     const go = (d) => {
       const v = dlg.querySelector('video');

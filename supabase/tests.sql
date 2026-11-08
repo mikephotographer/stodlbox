@@ -517,6 +517,35 @@ begin
   raise notice 'OK 13: Videos';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 14) Fotos im Original + Ansichts-Version (setzt Migration 010 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare ev uuid; a uuid; tk jsonb; p text; fid text; r jsonb; names text[];
+begin
+  perform pg_temp.as_system();
+  insert into members (name) values ('Original Olga') returning id into a;
+  insert into events (title, starts_at) values ('Original-Training', now() - interval '1 hour') returning id into ev;
+  insert into rsvps (event_id, member_id, status) values (ev, a, 'yes');
+  perform pg_temp.as_anon();
+  tk := photo_ticket('TEST-CODE', ev, a);
+  p := tk->>'prefix';
+  fid := gen_random_uuid()::text;
+  assert photo_path_ok(p || fid || '_m.jpg'), '_m.jpg sollte erlaubt sein';
+  perform add_media('TEST-CODE', a, p || fid || '.jpg', p || fid || '_t.jpg', 4032, 3024, 'photo', null, p || fid || '_m.jpg');
+  r := get_event_photos('TEST-CODE', ev, a);
+  assert r->'photos'->0->>'display_path' = p || fid || '_m.jpg', 'Ansichts-Version im Ergebnis: ' || r::text;
+  begin
+    perform add_media('TEST-CODE', a, p || gen_random_uuid() || '.jpg', p || gen_random_uuid() || '_t.jpg', 1, 1, 'photo', null, 'fremd/pfad_m.jpg');
+    raise exception 'Fremder Ansichts-Pfad hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%BAD_TICKET%', sqlerrm; end;
+  perform pg_temp.as_system();
+  insert into storage.objects (bucket_id, name, created_at) values ('photos', p || fid || '_m.jpg', now() - interval '2 hours');
+  names := purge_photos();
+  assert not (p || fid || '_m.jpg' = any(names)), 'Ansichts-Version darf beim Aufräumen nicht weg';
+  raise notice 'OK 14: Fotos im Original';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;
