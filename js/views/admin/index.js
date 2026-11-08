@@ -267,6 +267,8 @@ function renderMore(root) {
 }
 
 // ---------------------------------------------------------------- Router
+let codeChecked = false;
+
 export async function renderAdmin(root, sub) {
   let session = null;
   try {
@@ -279,6 +281,15 @@ export async function renderAdmin(root, sub) {
   let ok = false;
   try { ok = await api.isAdmin(); } catch { ok = false; }
   if (!ok) return renderLogin(root, { notAdmin: true, email: session.email });
+
+  // Gespeicherten Gruppen-Code einmal pro Sitzung prüfen. Der Admin kommt auch ohne gültigen Code
+  // an alle Daten – ein veralteter Code (z. B. aus dem Demo-Modus) würde sonst in jedem geteilten Link landen.
+  if (state.code && !codeChecked) {
+    try {
+      if (!(await api.checkCode(state.code))) state.code = null;
+      codeChecked = true;
+    } catch { /* offline: später nochmal prüfen */ }
+  }
 
   const parts = sub.split('/').filter(Boolean);
   const [a, b, c, d] = parts;
