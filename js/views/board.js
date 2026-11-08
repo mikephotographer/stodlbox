@@ -39,11 +39,10 @@ function view(d) {
   const polls = d.polls || [];
 
   return html`${topbar({ refresh: true })}
-    ${offline ? html`<p class="offline">Offline – du siehst den letzten Stand.</p>` : ''}
-    ${promoBanners(d)}
+    <div class="band">${offline ? html`<p class="offline">Offline – du siehst den letzten Stand.</p>` : ''}${promoBanners(d)}</div>
     <main id="main">
       ${next
-        ? eventHero(next, { rules: d.rules, meId: me && me.id, compact: true })
+        ? eventHero(next, { rules: d.rules, meId: me && me.id, compact: true, eyebrow: 'Nächstes Training' })
         : html`<div class="empty-state"><p class="label">Noch kein Termin geplant</p><p>Sobald Mike etwas einträgt, steht es hier.</p></div>`}
 
       ${polls.length ? html`<section class="section">

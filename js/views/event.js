@@ -13,8 +13,7 @@ export async function renderEvent(root, id) {
   const draw = () => {
     document.title = `STODLBOX · ${ev.title}`;
     mount(root, html`${topbar({ refresh: true })}
-      <a class="back" href="#/">${icons.back()} Übersicht</a>
-      <main id="main" style="margin-top:12px">${eventHero(ev, { rules: ev.rules || [], meId: me && me.id })}</main>
+      <main id="main">${eventHero(ev, { rules: ev.rules || [], meId: me && me.id, back: html`<a class="back" href="#/">${icons.back()} Übersicht</a>` })}</main>
       <footer class="footer"><a href="#/">Übersicht</a><a href="#/archiv">Archiv</a></footer>`);
   };
 

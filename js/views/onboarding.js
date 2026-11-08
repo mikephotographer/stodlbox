@@ -10,7 +10,7 @@ const logo = html`<a class="logo" href="#/">STODL<b>BOX</b></a>`;
 export function renderCode(root, { error } = {}) {
   document.title = 'STODLBOX · Code';
   mount(root, html`<div class="screen">
-    <div class="topbar">${logo}</div>
+    <div class="band"><div class="topbar">${logo}</div></div>
     <h1>Code eingeben</h1>
     <p class="lead">Die Stodlbox ist nur für unsere Trainingsgruppe. Frag Mike nach dem Link.</p>
     <form id="code-form" novalidate>
@@ -46,7 +46,7 @@ export function renderCode(root, { error } = {}) {
 export async function renderWho(root) {
   document.title = 'STODLBOX · Wer bist du?';
   mount(root, html`<div class="screen">
-    <div class="topbar">${logo}</div>
+    <div class="band"><div class="topbar">${logo}</div></div>
     <h1>Wer bist du?</h1>
     <p class="lead">Wähl deinen Namen. Das merkt sich dein Handy.</p>
     <div id="names" class="name-grid" aria-busy="true">

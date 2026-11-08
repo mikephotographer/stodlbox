@@ -76,8 +76,8 @@ export function voteBlock(e, rules, { canVote }) {
   const ended = voteEnded(e);
   const due = e.vote_deadline ? (ended ? 'Abstimmung beendet' : `bis ${dueText(e.vote_deadline)}`) : '';
   return html`<section class="vote" aria-label="Workout-Abstimmung">
-    <div class="wod-head"><span class="label">Workout-Abstimmung · ${total} ${total === 1 ? 'Stimme' : 'Stimmen'}</span>
-      ${due ? html`<span class="label">${due}</span>` : ''}</div>
+    <div class="wod-head"><span class="label">Abstimmung</span>
+      <span class="label">${total} ${total === 1 ? 'Stimme' : 'Stimmen'}${due ? ` · ${due}` : ''}</span></div>
     ${canVote && !e.my_vote ? html`<p class="hint" style="margin:0 0 8px">Tipp eine Option an, um das Workout zu sehen und abzustimmen.</p>` : ''}
     <div class="vote-opts">
       ${opts.map((o) => {
@@ -169,25 +169,31 @@ export function eventActions(e) {
  * Termin-Block. compact (Board): Workout gekürzt.
  * Reihenfolge: Titel → Zeit → Plätze → Zusage → Teilnehmer → Workout/Abstimmung → Notiz → Aktionen.
  */
-export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false }) {
+export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, eyebrow = '', back = '' }) {
   const cancelled = e.status === 'cancelled';
   const openVote = isOpenVote(e);
   const canVote = !!meId && openVote && !voteEnded(e) && !e.started && !cancelled;
   const rel = relText(e.starts_at);
   const title = headingTag === 'h1' ? html`<h1 class="title">${e.title}</h1>` : html`<h2 class="title">${e.title}</h2>`;
   return html`<article class="hero ${cancelled ? 'cancelled' : ''}" data-event="${e.id}">
-    <header class="hero-head">
-      ${title}
-      <p class="when num">${whenLine(e.starts_at)}${rel && !cancelled ? html` <span class="rel">· ${rel}</span>` : ''}</p>
-    </header>
-    ${cancelled ? '' : capacityBar(e)}
-    ${rsvpBlock(e)}
+    <div class="band hero-band">
+      ${back}
+      ${eyebrow ? html`<span class="label eyebrow">${eyebrow}</span>` : ''}
+      <header class="hero-head">
+        ${title}
+        <p class="when num">${whenLine(e.starts_at)}${rel && !cancelled ? html` <span class="rel">· ${rel}</span>` : ''}</p>
+      </header>
+      ${cancelled ? '' : capacityBar(e)}
+      ${rsvpBlock(e)}
+    </div>
+    <div class="hero-body">
     ${peopleList(e, meId)}
     ${openVote
       ? voteBlock(e, rules, { canVote })
       : html`${wodBox(e.workout, { compact })}${equipBanner(e.workout, rules)}`}
     ${e.note ? html`<p class="note">${e.note}</p>` : ''}
     ${eventActions(e)}
+    </div>
   </article>`;
 }
 

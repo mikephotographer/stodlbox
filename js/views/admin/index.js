@@ -22,14 +22,14 @@ const TABS = [
 ];
 
 export function adminHead(title, { back, plus } = {}) {
-  return html`<header class="admin-head">
+  return html`<div class="band"><header class="admin-head">
     <div style="min-width:0">
       ${back ? html`<a class="back" href="${back}">${icons.back()} Zurück</a>` : html`<a class="logo" href="#/admin">STODL<b>BOX</b><small>Admin</small></a>`}
       ${title ? html`<h1 class="page-title">${title}</h1>` : ''}
     </div>
     ${plus ? html`<button class="plus" data-action="${plus}" aria-label="Neu anlegen">${icons.plus()}</button>` : ''}
   </header>
-  ${DEMO ? html`<p class="demo">Demo</p>` : ''}`;
+  ${DEMO ? html`<p class="demo">Demo</p>` : ''}</div>`;
 }
 
 function tabbar(active) {
@@ -46,7 +46,7 @@ function tabbar(active) {
 function renderLogin(root, { notAdmin, email } = {}) {
   document.title = 'STODLBOX · Admin-Login';
   mount(root, html`<div class="screen">
-    <div class="topbar"><a class="logo" href="#/">STODL<b>BOX</b></a></div>
+    <div class="band"><div class="topbar"><a class="logo" href="#/">STODL<b>BOX</b></a></div></div>
     <h1>Admin-Login</h1>
     ${notAdmin ? html`<div class="banner"><p>${email} hat keine Admin-Rechte.</p></div>
       <button class="btn ghost" data-action="logout">Abmelden</button>` : html`

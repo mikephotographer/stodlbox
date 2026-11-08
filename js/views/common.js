@@ -11,14 +11,14 @@ import { navigate } from '../router.js';
 
 export function topbar({ refresh = false } = {}) {
   const me = state.member;
-  return html`<header class="topbar">
+  return html`<div class="band"><header class="topbar">
     <a class="logo" href="#/" aria-label="STODLBOX – zum Board">STODL<b>BOX</b></a>
     <div class="row" style="flex-wrap:nowrap;gap:8px;min-width:0">
       ${refresh ? html`<button class="icon-btn" data-action="refresh" aria-label="Neu laden">${icons.refresh()}</button>` : ''}
       ${me ? html`<a class="me-btn" href="#/wer" aria-label="Du bist ${me.name}. Nicht du? Wechseln">${icons.user()}<span>${me.name}</span></a>` : ''}
     </div>
   </header>
-  ${DEMO ? html`<p class="demo">Demo – die Daten liegen nur in diesem Browser.</p>` : ''}`;
+  ${DEMO ? html`<p class="demo">Demo – die Daten liegen nur in diesem Browser.</p>` : ''}</div>`;
 }
 
 /** Bei BAD_CODE / BAD_MEMBER zurück ins Onboarding. Gibt true zurück, wenn behandelt. */

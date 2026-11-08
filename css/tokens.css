@@ -1,20 +1,43 @@
+/* STODLBOX – Richtung „Box“: hell mit schwarzem Kopfbereich, angelehnt an crossfit.com.
+   Gelb bleibt die eine Akzentfarbe (Hauptaktion, „du“). Auf Hell wird Gelb als Text zu --accent-ink. */
 :root{
-  --bg:#0e0f10;        /* Hintergrund */
-  --surface:#16181a;   /* Karten, Eingabefelder */
-  --surface-2:#1e2124; /* gedrückt / hover */
-  --line:#2a2d31;      /* Rahmen, Trennlinien */
-  --line-soft:#1d2023;
-  --text:#eceef0;
-  --text-2:#c3c8cd;    /* ruhiger Text, z. B. Platzbalken */
-  --muted:#9aa1a8;     /* Labels, Meta – Kontrast auf --bg ≥ 4.5:1 */
-  --accent:#f5c400;    /* Warngelb – nur Hauptaktion und „du“ */
-  --on-accent:#0e0f10;
-  --danger:#ff6a5f;
-  --ok:#5fd38a;
-  --font-display:'Anton',Impact,'Arial Narrow',sans-serif;          /* nur Termintitel + Hauptbutton */
-  --font-mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace; /* Workout-Text, Zeiten, Zahlen */
-  --font-body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif; /* alles andere */
+  --bg:#f2f2f2;        /* Seitenfläche */
+  --surface:#ffffff;   /* Karten, Eingabefelder */
+  --surface-2:#e8e8e8; /* gedrückt / hover / Skeleton */
+  --line:#dcdcdc;      /* Rahmen, Trennlinien */
+  --line-soft:#e9e9e9;
+  --text:#1a1a1a;
+  --text-2:#333333;    /* ruhiger Fließtext */
+  --muted:#5f5f5f;     /* Labels, Meta – ≥ 4.5:1 auf --bg */
+  --accent:#f5c400;    /* Stodlbox-Gelb – Flächen: Hauptbutton, Plus, Markierungen */
+  --accent-hover:#ffd21f;
+  --on-accent:#1a1a1a;
+  --accent-ink:#7a5c00;/* Gelb als Schrift auf Hell („du“, To-dos) */
+  --focus:#1a1a1a;
+  --danger:#c62828;
+  --ok:#1e7b3c;
+  --font-display:'Barlow Condensed','Arial Narrow',Impact,sans-serif;      /* Überschriften, Buttons – immer Versalien */
+  --font-mono:'Roboto Mono',ui-monospace,Menlo,Consolas,monospace;        /* Workout-Text, Daten, kleine Labels */
+  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;       /* Fließtext */
+  --radius:4px;
   --pad:16px;
   --maxw:480px;
+  color-scheme:light;
+}
+
+/* Dunkler Bereich (Kopf, nächster Termin): gleiche Token-Namen, dunkle Werte */
+.band{
+  --bg:#1a1a1a;
+  --surface:#262626;
+  --surface-2:#333333;
+  --line:#3d3d3d;
+  --line-soft:#2b2b2b;
+  --text:#ffffff;
+  --text-2:#dcdcdc;
+  --muted:#a6a6ab;
+  --accent-ink:#f5c400;
+  --focus:#f5c400;
+  --danger:#ff7a70;
+  --ok:#5fd38a;
   color-scheme:dark;
 }
