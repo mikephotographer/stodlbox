@@ -14,7 +14,7 @@ export async function renderEvent(root, id) {
     document.title = `STODLBOX · ${ev.title}`;
     mount(root, html`${topbar({ refresh: true })}
       <main id="main">${eventHero(ev, { rules: ev.rules || [], meId: me && me.id, back: html`<a class="back" href="#/">${icons.back()} Übersicht</a>` })}</main>
-      <footer class="footer"><a href="#/">Übersicht</a><a href="#/archiv">Archiv</a></footer>`);
+      <footer class="footer"><a href="#/">Übersicht</a><a href="#/workouts">Workouts</a><a href="#/archiv">Archiv</a></footer>`);
   };
 
   async function reload({ quiet = false } = {}) {

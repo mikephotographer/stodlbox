@@ -16,6 +16,7 @@ export const icons = {
   plus: (s = 26) => svg('<path d="M12 4v16M4 12h16"/>', s, 3),
   close: (s = 20) => svg('<path d="M5 5l14 14M19 5 5 19"/>', s),
   check: (s = 16) => svg('<path d="m4 12 5 5L20 6"/>', s, 3),
+  shuffle: (s = 18) => svg('<path d="M16 3h5v5"/><path d="M4 20 21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/>', s),
   refresh: (s = 18) => svg('<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>', s),
   list: (s = 22) => svg('<path d="M4 6h16M4 12h16M4 18h16"/>', s),
   vote: (s = 22) => svg('<path d="M4 20h16"/><rect x="5" y="11" width="3" height="9"/><rect x="10.5" y="6" width="3" height="14"/><rect x="16" y="14" width="3" height="6"/>', s),

@@ -415,6 +415,11 @@ export const mockApi = {
     [...new Set(optionIds)].forEach((id) => db.answers.push({ option_id: id, member_id: memberId }));
     return pollJson(p, memberId);
   }),
+  listWorkouts: rd(() => {
+    assertCode(code());
+    return [...db.templates].sort((a, b) => a.title.localeCompare(b.title, 'de'))
+      .map((t) => ({ id: t.id, title: t.title, workout: t.workout, tags: t.tags || [], notes: t.notes || null }));
+  }),
   searchWorkouts: rd((q = '', tag = null) => {
     assertCode(code());
     const needle = q.trim().toLowerCase();

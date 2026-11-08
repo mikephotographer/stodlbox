@@ -7,6 +7,7 @@ import { renderBoard } from './views/board.js';
 import { renderEvent } from './views/event.js';
 import { renderArchive } from './views/archive.js';
 import { renderPoll } from './views/poll.js';
+import { renderWorkouts, renderWorkout } from './views/workouts.js';
 import { html, mount } from './html.js';
 
 const root = document.getElementById('app');
@@ -92,6 +93,8 @@ async function boot() {
     [/^\/$/, friend(renderBoard)],
     [/^\/t\/([\w-]+)$/, friend(renderEvent)],
     [/^\/archiv$/, friend(renderArchive)],
+    [/^\/workouts$/, friend(renderWorkouts)],
+    [/^\/workouts\/([\w-]+)$/, friend(renderWorkout)],
     [/^\/umfrage\/([\w-]+)$/, friend(renderPoll)],
     [/^\/code$/, async () => { reset(); renderCode(root); }],
     [/^\/wer$/, async () => { reset(); await takeCodeFromUrl(); if (!state.code) return renderCode(root); renderWho(root); }],

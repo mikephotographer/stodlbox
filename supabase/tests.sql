@@ -344,6 +344,29 @@ begin
   raise notice 'OK 9: Workout-Datenbank';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 10) Workout-Datenbank für Teilnehmer (setzt Migration 006 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare r jsonb;
+begin
+  perform pg_temp.as_system();
+  insert into workout_templates (title, workout, tags, notes) values
+    ('Test Freunde WOD', 'EMOM 10: 5 Burpees', array['Test-Freunde'], 'Notiz für alle');
+  perform pg_temp.as_anon();
+  r := list_workouts('TEST-CODE');
+  assert exists (select 1 from jsonb_array_elements(r) x
+                 where x->>'title' = 'Test Freunde WOD' and x->>'notes' = 'Notiz für alle' and x->'tags' ? 'Test-Freunde'),
+    'list_workouts sollte das Workout mit Tags und Notiz liefern';
+  begin
+    perform list_workouts('FALSCH');
+    raise exception 'list_workouts mit falschem Code hätte scheitern müssen';
+  exception when others then
+    assert sqlerrm like '%BAD_CODE%', 'Erwartet BAD_CODE, bekommen: ' || sqlerrm;
+  end;
+  raise notice 'OK 10: Workouts für Teilnehmer';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

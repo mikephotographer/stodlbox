@@ -44,6 +44,7 @@ const real = {
   voteWorkout: (eventId, memberId, optionId) => rpc('vote_workout', { p_code: code(), p_event_id: eventId, p_member_id: memberId, p_option_id: optionId }),
   answerDatePoll: (pollId, memberId, optionIds) => rpc('answer_date_poll', { p_code: code(), p_poll_id: pollId, p_member_id: memberId, p_option_ids: optionIds }),
   searchWorkouts: (q, tag) => rpc('search_workouts', { p_code: code(), p_query: q || '', p_tag: tag || null }),
+  listWorkouts: () => rpc('list_workouts', { p_code: code() }),
 
   // ---------- Admin: Login ----------
   async session() {
