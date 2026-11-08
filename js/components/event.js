@@ -4,6 +4,7 @@ import { html } from '../html.js';
 import { icons } from '../icons.js';
 import { whenLine, relText, dueText, wdShort, dm, hhmm } from '../format.js';
 import { matchEquipment, equipmentSentence, tipWithTerms } from '../equipment.js';
+import { detect, toQuery, describe } from '../timer.js';
 
 export const safeUrl = (u) => (u && /^https?:\/\//i.test(String(u).trim()) ? String(u).trim() : null);
 
@@ -43,9 +44,18 @@ export function capacityBar(e) {
 /**
  * Workout-Text. compact: nur die ersten Zeilen, Rest aufklappbar.
  */
-export function wodBox(text, { title = 'Workout', aside = '', compact = false } = {}) {
+/** Link „Timer“ mit Einstellung aus dem Workout-Text (oder leer, wenn nichts erkannt wird) */
+export function timerLink(text, name = '') {
+  const c = detect(text);
+  if (!c) return '';
+  const q = toQuery(c) + (name ? '&n=' + encodeURIComponent(name) : '');
+  return html`<a class="timer-link" href="#/timer?${q}">${icons.timer(16)}<span>${describe(c)}</span></a>`;
+}
+
+export function wodBox(text, { title = 'Workout', aside = '', compact = false, timer = '' } = {}) {
   const t = text ? String(text).trim() : '';
-  const head = html`<div class="wod-head"><span class="label">${title}</span>${aside ? html`<span class="label">${aside}</span>` : ''}</div>`;
+  const side = timer && t ? timerLink(t, timer) : (aside ? html`<span class="label">${aside}</span>` : '');
+  const head = html`<div class="wod-head"><span class="label">${title}</span>${side}</div>`;
   if (!t) return html`<div class="wod">${head}<div class="wod-body empty">Workout folgt.</div></div>`;
   const lines = t.split('\n');
   if (!compact || lines.length <= 5) {
@@ -190,7 +200,7 @@ export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, 
     ${peopleList(e, meId)}
     ${openVote
       ? voteBlock(e, rules, { canVote })
-      : html`${wodBox(e.workout, { compact })}${equipBanner(e.workout, rules)}`}
+      : html`${wodBox(e.workout, { compact, timer: e.title })}${equipBanner(e.workout, rules)}`}
     ${e.note ? html`<p class="note">${e.note}</p>` : ''}
     ${eventActions(e)}
     </div>

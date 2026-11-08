@@ -6,6 +6,7 @@ import { errText } from '../ui.js';
 import { route, navigate } from '../router.js';
 import { tagCounts, hasTag, matchesQuery, filterChips, preview } from '../components/workouts.js';
 import { topbar, handleAuthError } from './common.js';
+import { timerLink } from '../components/event.js';
 
 // Bleibt zwischen Liste und Detail erhalten: Daten, Suche, Filter, Scroll-Position.
 let list = null;
@@ -104,7 +105,7 @@ export async function renderWorkout(root, id) {
     <main id="main">
       <h1 class="page-title" style="margin:8px 0 0">${w.title}</h1>
       ${w.tags && w.tags.length ? html`<div class="chips wrap">${w.tags.map((t) => html`<a class="chip" href="#/workouts?g=${encodeURIComponent(t)}">${t}</a>`)}</div>` : ''}
-      <div class="wod"><div class="wod-body">${w.workout}</div></div>
+      <div class="wod"><div class="wod-head"><span class="label">Workout</span>${timerLink(w.workout, w.title)}</div><div class="wod-body">${w.workout}</div></div>
       ${w.notes ? html`<p class="wo-notes">${w.notes}</p>` : ''}
     </main>`);
 }

@@ -8,6 +8,7 @@ import { renderEvent } from './views/event.js';
 import { renderArchive } from './views/archive.js';
 import { renderPoll } from './views/poll.js';
 import { renderWorkouts, renderWorkout } from './views/workouts.js';
+import { renderTimer } from './views/timer.js';
 import { html, mount } from './html.js';
 import { icons } from './icons.js';
 import { tabbar } from './components/tabbar.js';
@@ -42,12 +43,13 @@ function friend(view) {
 const FRIEND_TABS = [
   ['#/', 'Termine', icons.calendar, 'termine'],
   ['#/workouts', 'Workouts', icons.doc, 'workouts'],
+  ['#/timer', 'Timer', icons.timer, 'timer'],
   ['#/archiv', 'Archiv', icons.archive, 'archiv'],
 ];
 
 function friendTabbar() {
   const { path } = parseHash();
-  const active = path.startsWith('/workouts') ? 'workouts' : path === '/archiv' ? 'archiv' : 'termine';
+  const active = path.startsWith('/workouts') ? 'workouts' : path === '/archiv' ? 'archiv' : path === '/timer' ? 'timer' : 'termine';
   tabbar(FRIEND_TABS, active, 'Hauptmenü');
 }
 
@@ -110,6 +112,7 @@ async function boot() {
     [/^\/archiv$/, friend(renderArchive)],
     [/^\/workouts$/, friend(renderWorkouts)],
     [/^\/workouts\/([\w-]+)$/, friend(renderWorkout)],
+    [/^\/timer$/, friend(renderTimer)],
     [/^\/umfrage\/([\w-]+)$/, friend(renderPoll)],
     [/^\/code$/, async () => { reset(); renderCode(root); }],
     [/^\/wer$/, async () => { reset(); await takeCodeFromUrl(); if (!state.code) return renderCode(root); renderWho(root); }],

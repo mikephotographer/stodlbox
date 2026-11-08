@@ -27,6 +27,12 @@ export const state = {
   get member() { return data.member || null; }, // { id, name }
   set member(v) { data.member = v || null; save(); },
 
+  get timer() { return data.timer || {}; }, // letzte Einstellungen je Modus
+  set timer(v) { data.timer = v || {}; save(); },
+
+  get timerRun() { return data.timerRun || null; }, // laufender Timer (übersteht Neuladen)
+  set timerRun(v) { data.timerRun = v || null; save(); },
+
   get board() { return data.board || null; },
   set board(v) { data.board = v || null; save(); },
 
@@ -37,7 +43,7 @@ export const state = {
   },
 
   reset() {
-    data = { flags: data.flags };
+    data = { flags: data.flags, timer: data.timer };
     save();
   },
 };
