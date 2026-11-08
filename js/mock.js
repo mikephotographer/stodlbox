@@ -268,10 +268,12 @@ function generateSeries(weeks = 6) {
       if (dow === s.weekday) {
         const slot = viennaToISO(d, s.start_time.slice(0, 5));
         if (slot > nowISO() && !db.events.some((e) => e.series_id === s.id && e.series_slot === slot)) {
-          db.events.push({
+          const ne = {
             id: uid(), series_id: s.id, series_slot: slot, starts_at: slot, duration_min: s.duration_min, title: s.title, workout: null,
             workout_mode: 'fixed', vote_deadline: null, vote_closed: false, capacity: s.capacity, media_url: null, note: null, status: 'planned',
-          });
+          };
+          db.events.push(ne);
+          autoJoinAdmin(ne);
           n++;
         }
       }
@@ -279,6 +281,15 @@ function generateSeries(weeks = 6) {
     }
   }
   return n;
+}
+
+/** Wie Trigger auto_join_admin (008): Admin bei neuen Terminen gleich „dabei“ */
+function autoJoinAdmin(e) {
+  const { admin_member_id: me, auto_join_series: series } = db.settings;
+  if (!me || (e.series_id && !series) || e.status !== 'planned') return;
+  if (!db.members.some((m) => m.id === me && m.active)) return;
+  if (db.rsvps.some((r) => r.event_id === e.id && r.member_id === me)) return;
+  db.rsvps.push({ event_id: e.id, member_id: me, status: 'yes', status_since: nowISO(), promoted_at: null, promotion_seen: true });
 }
 
 function rulesJson() {
@@ -306,6 +317,7 @@ function saveEvent(p) {
     e = { id: uid(), series_id: null, series_slot: null, status: 'planned', vote_closed: false, vote_deadline: null, ...fields };
     if (mode === 'vote') e.vote_deadline = p.vote_deadline || null;
     db.events.push(e);
+    autoJoinAdmin(e);
   } else {
     Object.assign(e, fields);
     if (mode === 'vote') { e.vote_deadline = p.vote_deadline || null; e.vote_closed = false; }
@@ -675,7 +687,12 @@ export const mockApi = {
   }),
 
   // ---------- Admin: Einstellungen ----------
-  getSettings: rd(() => { requireAdmin(); const { admin_email, default_duration_min, default_capacity } = db.settings; return { admin_email, default_duration_min, default_capacity }; }),
+  getSettings: rd(() => {
+    requireAdmin();
+    const { admin_email, default_duration_min, default_capacity, admin_member_id = null, auto_join_series = false } = db.settings;
+    return { admin_email, default_duration_min, default_capacity, admin_member_id, auto_join_series };
+  }),
+  saveAutoJoin: tx((s) => { requireAdmin(); Object.assign(db.settings, { admin_member_id: s.admin_member_id || null, auto_join_series: !!s.auto_join_series }); }),
   saveSettings: tx((s) => { requireAdmin(); Object.assign(db.settings, { default_duration_min: +s.default_duration_min || 90, default_capacity: s.default_capacity ? +s.default_capacity : null }); }),
   setGroupCode: tx((c) => {
     requireAdmin();

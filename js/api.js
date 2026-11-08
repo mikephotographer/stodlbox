@@ -162,11 +162,15 @@ const real = {
   // ---------- Admin: Einstellungen ----------
   async getSettings() {
     const c = await client();
-    return check(await c.from('app_settings').select('admin_email,default_duration_min,default_capacity').eq('id', 1).single());
+    return check(await c.from('app_settings').select('admin_email,default_duration_min,default_capacity,admin_member_id,auto_join_series').eq('id', 1).single());
   },
   async saveSettings(s) {
     const c = await client();
     check(await c.from('app_settings').update({ default_duration_min: s.default_duration_min, default_capacity: s.default_capacity }).eq('id', 1));
+  },
+  async saveAutoJoin(s) {
+    const c = await client();
+    check(await c.from('app_settings').update({ admin_member_id: s.admin_member_id || null, auto_join_series: !!s.auto_join_series }).eq('id', 1));
   },
   setGroupCode: (c) => rpc('admin_set_group_code', { p_new_code: c }),
 };

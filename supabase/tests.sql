@@ -447,6 +447,34 @@ begin
   raise notice 'OK 11: Fotos';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 12) Admin automatisch dabei (setzt Migration 008 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare me uuid; ev uuid; ser uuid; sev uuid;
+begin
+  perform pg_temp.as_system();
+  insert into members (name) values ('Admin Selbst') returning id into me;
+  update app_settings set admin_member_id = me, auto_join_series = false where id = 1;
+  perform pg_temp.as_admin();
+  ev := admin_save_event(jsonb_build_object('title', 'Auto-Join', 'starts_at', now() + interval '3 days'));
+  assert exists (select 1 from rsvps where event_id = ev and member_id = me and status = 'yes'), 'Admin sollte bei neuem Termin dabei sein';
+  -- Bearbeiten ändert nichts an einer Absage
+  perform admin_set_rsvp(ev, me, 'no');
+  perform admin_save_event(jsonb_build_object('id', ev, 'title', 'Auto-Join 2', 'starts_at', now() + interval '3 days'));
+  assert (select status from rsvps where event_id = ev and member_id = me) = 'no', 'Bearbeiten darf die Absage nicht überschreiben';
+  -- Serien-Termin: nur mit auto_join_series
+  perform pg_temp.as_system();
+  insert into series (title, weekday, start_time, starts_on) values ('Auto-Serie', 3, '18:00', current_date) returning id into ser;
+  insert into events (title, starts_at, series_id, series_slot) values ('Serie 1', now() + interval '4 days', ser, now() + interval '4 days') returning id into sev;
+  assert not exists (select 1 from rsvps where event_id = sev and member_id = me), 'Serie ohne Häkchen: nicht automatisch dabei';
+  update app_settings set auto_join_series = true where id = 1;
+  insert into events (title, starts_at, series_id, series_slot) values ('Serie 2', now() + interval '11 days', ser, now() + interval '11 days') returning id into sev;
+  assert exists (select 1 from rsvps where event_id = sev and member_id = me and status = 'yes'), 'Serie mit Häkchen: automatisch dabei';
+  update app_settings set admin_member_id = null, auto_join_series = false where id = 1;
+  raise notice 'OK 12: Admin automatisch dabei';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

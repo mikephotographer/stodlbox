@@ -282,11 +282,24 @@ export async function renderSettings(root) {
   document.title = 'STODLBOX · Einstellungen';
   mount(root, html`${adminHead('Einstellungen', { back: '#/admin/mehr' })}<div class="skeleton" style="height:200px" aria-busy="true"></div>`);
   let s;
-  try { s = await api.getSettings(); } catch (e) { mount(root, html`${adminHead('Einstellungen', { back: '#/admin/mehr' })}<p class="err">${errText(e)}</p>`); return; }
+  let people = [];
+  try { [s, people] = await Promise.all([api.getSettings(), api.listAllMembers()]); } catch (e) { mount(root, html`${adminHead('Einstellungen', { back: '#/admin/mehr' })}<p class="err">${errText(e)}</p>`); return; }
 
   const draw = () => {
     const link = state.code ? appLink('/') : null;
+    const active = people.filter((p) => p.active);
     mount(root, html`${adminHead('Einstellungen', { back: '#/admin/mehr' })}
+      <h2 class="section-title">Ich als Teilnehmer</h2>
+      <p class="hint" style="margin-bottom:10px">Wähl deinen Namen. Dann bist du bei jedem Termin, den du anlegst, gleich „dabei“.</p>
+      <label class="field"><span class="label">Das bin ich</span>
+        <select class="input select" id="me-member">
+          <option value="" ${s.admin_member_id ? '' : 'selected'}>Niemand (nicht automatisch dabei)</option>
+          ${active.map((p) => html`<option value="${p.id}" ${p.id === s.admin_member_id ? 'selected' : ''}>${p.name}</option>`)}
+        </select></label>
+      ${s.admin_member_id ? html`<label class="toggle-row"><span><strong>Auch bei Serien-Terminen</strong><span class="muted">Termine, die eine Serie automatisch anlegt</span></span>
+        <input type="checkbox" class="switch" id="me-series" ${s.auto_join_series ? 'checked' : ''}></label>` : ''}
+
+      <div class="sep" role="presentation"></div>
       <h2 class="section-title">Einladungslink</h2>
       ${link ? html`<div class="copy-box"><label class="sr-only" for="inv">Einladungslink</label><input class="input" id="inv" readonly value="${link}">
           <button class="icon-btn" data-action="copy" aria-label="Link kopieren">${icons.copy(18)}</button></div>
@@ -333,6 +346,18 @@ export async function renderSettings(root) {
       navigate('/admin');
     }
   };
+  root.onchange = async (e) => {
+    if (e.target.id !== 'me-member' && e.target.id !== 'me-series') return;
+    const memberId = root.querySelector('#me-member').value || null;
+    const series = !!(root.querySelector('#me-series') && root.querySelector('#me-series').checked);
+    try {
+      await api.saveAutoJoin({ admin_member_id: memberId, auto_join_series: memberId ? series : false });
+      s = { ...s, admin_member_id: memberId, auto_join_series: memberId ? series : false };
+      toast('Gespeichert');
+      draw();
+    } catch (err) { toast(errText(err), 'error'); }
+  };
+
   root.onsubmit = async (e) => {
     e.preventDefault();
     const form = e.target;
