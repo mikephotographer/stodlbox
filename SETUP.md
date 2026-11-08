@@ -64,9 +64,10 @@ Unter **Integrations → Cron → Jobs** sollten zwei Jobs stehen: `stodlbox-clo
 3. **Authentication → URL Configuration:**
    - **Site URL:** `https://<dein-github-name>.github.io/stodlbox/`
    - **Redirect URLs:** dieselbe Adresse hinzufügen.
-4. **Optional – nur mit eigenem Mailserver (SMTP):** Supabase erlaubt Änderungen an den Mail-Vorlagen nur mit eigenem SMTP
-   (**Authentication → Emails → SMTP Settings**). Ohne SMTP kommt die Standard-Mail mit **Login-Link** – das reicht.
-   Mit SMTP kann man unter **Emails → Magic link or OTP** den 6-stelligen Code ergänzen
+4. **Eigener Mailserver (SMTP) – empfohlen:** Ohne SMTP verschickt Supabase nur 2 Login-Mails pro Stunde und die Vorlage
+   ist nicht änderbar. Unter **Authentication → Emails → SMTP Settings** eintragen (Stodlbox: Host `xserv2201.hybridserver.at`,
+   Port 465, Postfach foto@schafranek.at), dann gilt ein Limit von 30 Mails pro Stunde. Die Login-Maske erwartet den Code aus der Mail.
+   Vorlage unter **Emails → Templates → Magic link** (Inhalt: `supabase/email-magic-link.html`), Beispiel
    (praktisch, weil der Code auch in der installierten Home-Bildschirm-App funktioniert):
    - **Subject:** `Dein STODLBOX-Login`
    - **Body:**
