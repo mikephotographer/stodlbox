@@ -6,6 +6,7 @@ import { renderCode, renderWho } from './views/onboarding.js';
 import { renderBoard } from './views/board.js';
 import { renderEvent } from './views/event.js';
 import { renderArchive } from './views/archive.js';
+import { renderPoll } from './views/poll.js';
 import { html, mount } from './html.js';
 
 const root = document.getElementById('app');
@@ -72,12 +73,13 @@ async function boot() {
     [/^\/$/, friend(renderBoard)],
     [/^\/t\/([\w-]+)$/, friend(renderEvent)],
     [/^\/archiv$/, friend(renderArchive)],
+    [/^\/umfrage\/([\w-]+)$/, friend(renderPoll)],
     [/^\/code$/, async () => { reset(); renderCode(root); }],
     [/^\/wer$/, async () => { reset(); await takeCodeFromUrl(); if (!state.code) return renderCode(root); renderWho(root); }],
     [/^\/admin\/?(.*)$/, admin],
   ], async () => {
     reset();
-    mount(root, html`<div class="empty-state"><p class="label">// GIBT'S NICHT</p><p><a href="#/">Zurück zum Board</a></p></div>`);
+    mount(root, html`<div class="empty-state"><p class="label">Diese Seite gibt’s nicht</p><p><a href="#/">Zur Übersicht</a></p></div>`);
   });
 }
 
@@ -90,7 +92,7 @@ document.addEventListener('visibilitychange', () => {
 
 boot().catch((e) => {
   console.error(e);
-  mount(root, html`<div class="empty-state"><p class="label">// FEHLER BEIM START</p><p>Bitte neu laden.</p></div>`);
+  mount(root, html`<div class="empty-state"><p class="label">Die App konnte nicht starten</p><p>Bitte lade die Seite neu.</p></div>`);
 });
 
 // Service Worker für Offline-Start

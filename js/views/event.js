@@ -4,7 +4,6 @@ import { icons } from '../icons.js';
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { errText, toast } from '../ui.js';
-import { long } from '../format.js';
 import { eventHero } from '../components/event.js';
 import { topbar, bindFriendActions, handleAuthError } from './common.js';
 
@@ -14,10 +13,9 @@ export async function renderEvent(root, id) {
   const draw = () => {
     document.title = `STODLBOX · ${ev.title}`;
     mount(root, html`${topbar({ refresh: true })}
-      <a class="back" href="#/">${icons.back()} Board</a>
-      <p class="label" style="margin:6px 0 10px">// ${long(ev.starts_at).toUpperCase()}</p>
-      <main id="main">${eventHero(ev, { rules: ev.rules || [], meId: me && me.id })}</main>
-      <footer class="footer"><a href="#/archiv">→ Archiv</a><a href="#/">→ Board</a></footer>`);
+      <a class="back" href="#/">${icons.back()} Übersicht</a>
+      <main id="main" style="margin-top:12px">${eventHero(ev, { rules: ev.rules || [], meId: me && me.id })}</main>
+      <footer class="footer"><a href="#/">Übersicht</a><a href="#/archiv">Archiv</a></footer>`);
   };
 
   async function reload({ quiet = false } = {}) {
@@ -27,8 +25,8 @@ export async function renderEvent(root, id) {
     } catch (e) {
       if (handleAuthError(e)) return;
       if (!quiet || !ev) {
-        mount(root, html`${topbar()}<a class="back" href="#/">${icons.back()} Board</a>
-          <div class="empty-state"><p class="label">// NICHT GEFUNDEN</p><p>${errText(e)}</p></div>`);
+        mount(root, html`${topbar()}<a class="back" href="#/">${icons.back()} Übersicht</a>
+          <div class="empty-state"><p class="label">Termin nicht gefunden</p><p>${errText(e)}</p></div>`);
       } else {
         toast(errText(e), 'error');
       }
@@ -41,7 +39,7 @@ export async function renderEvent(root, id) {
     ev = { ...cached, rules: state.board.rules };
     draw();
   } else {
-    mount(root, html`${topbar()}<div class="skeleton" style="height:112px;width:60%;margin-top:24px" aria-busy="true"></div>`);
+    mount(root, html`${topbar()}<div class="skeleton" style="height:36px;width:70%;margin-top:24px" aria-busy="true"></div>`);
   }
 
   bindFriendActions(root, {

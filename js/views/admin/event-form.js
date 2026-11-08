@@ -23,7 +23,7 @@ function dayBefore(dateStr) {
 
 function equipPreview(text, rules) {
   const m = matchEquipment(text, rules);
-  return m.length ? `MITNEHMEN: ${m.map((x) => tipWithTerms(x.tip, [x.terms[0]])).join(' · ')}` : '';
+  return m.length ? `Mitnehmen: ${m.map((x) => tipWithTerms(x.tip, [x.terms[0]])).join(' · ')}` : '';
 }
 
 export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
@@ -77,10 +77,10 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
   if (!f.vote_date) f.vote_date = dayBefore(f.date);
 
   const optionFields = (o, i) => html`<div class="opt-card" data-opt="${i}">
-    <div class="label-row" style="margin:0 0 4px"><span class="label">// OPTION ${String.fromCharCode(65 + i)}</span>
+    <div class="label-row" style="margin:0 0 4px"><span class="section-title" style="margin:0">Option ${String.fromCharCode(65 + i)}</span>
       <span class="row" style="gap:4px">
-        <button type="button" class="link" data-action="pick-template" data-target="${i}">aus vorlage</button>
-        ${f.options.length > 2 ? html`<button type="button" class="link muted" data-action="remove-option" data-target="${i}">entfernen</button>` : ''}
+        <button type="button" class="link" data-action="pick-template" data-target="${i}">Aus Vorlage</button>
+        ${f.options.length > 2 ? html`<button type="button" class="link muted" data-action="remove-option" data-target="${i}">Entfernen</button>` : ''}
       </span></div>
     <label class="field"><span class="label">Kurztitel</span>
       <input class="input" name="opt_label_${i}" maxlength="40" value="${o.label}" placeholder="z. B. Chipper 100er" required></label>
@@ -95,13 +95,13 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     const c = counts(ev);
     const list = [...members].sort((a, b) => (byMember.has(b.id) - byMember.has(a.id)) || a.name.localeCompare(b.name, 'de'));
     return html`<div class="sep" role="presentation"></div>
-      <div class="label-row"><span class="label">// TEILNEHMER</span>
+      <div class="label-row"><h2 class="section-title" style="margin:0">Teilnehmer</h2>
         <span class="label">${c.yes}${ev.capacity ? '/' + ev.capacity : ''} DABEI${c.waitlist ? ` · ${c.waitlist} WARTELISTE` : ''}</span></div>
       <p class="hint" style="margin:0 0 8px">Wenn dir jemand per WhatsApp zu- oder absagt, stell es hier ein.</p>
       ${list.map((m) => {
         const s = byMember.get(m.id) || 'none';
         return html`<div class="p-row"><span class="n">${m.name}</span>
-          ${s === 'waitlist' ? html`<span class="tag accent">WARTELISTE</span>` : ''}
+          ${s === 'waitlist' ? html`<span class="label">Warteliste</span>` : ''}
           <label class="sr-only" for="ps-${m.id}">Status von ${m.name}</label>
           <select class="select" id="ps-${m.id}" data-member="${m.id}">
             ${[['none', '—'], ['yes', 'dabei'], ['maybe', 'vielleicht'], ['no', 'kann nicht']].map(([v, l]) =>
@@ -114,15 +114,15 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     if (!ev || ev.workout_mode !== 'vote' || ev.vote_closed) return '';
     const total = ev.options.reduce((s, o) => s + o.votes, 0);
     return html`<div class="card" style="margin-top:16px">
-      <p class="label">// STAND: ${total} STIMMEN</p>
+      <p class="section-title">Stand: ${total} ${total === 1 ? 'Stimme' : 'Stimmen'}</p>
       <p class="mono" style="font-size:14px;margin:8px 0 12px">${ev.options.map((o) => `${o.label}: ${o.votes}`).join(' · ')}</p>
-      <button type="button" class="btn sm" style="width:100%" data-action="close-vote">VOTING JETZT ABSCHLIESSEN</button>
+      <button type="button" class="btn sm" style="width:100%" data-action="close-vote">Abstimmung jetzt abschließen</button>
     </div>`;
   };
 
   const draw = () => {
     mount(root, html`${adminHead(ev ? 'Termin' : 'Neuer Termin', { back: fromPoll ? '#/admin/umfragen' : '#/admin' })}
-      ${ev && ev.status === 'cancelled' ? html`<div class="banner"><span class="tag danger">ABGESAGT</span><p>Dieser Termin ist abgesagt.</p></div>` : ''}
+      ${ev && ev.status === 'cancelled' ? html`<div class="banner"><p><strong>Abgesagt.</strong> Die Freunde sehen den Termin durchgestrichen.</p></div>` : ''}
       ${pollOpt ? html`<div class="banner">${icons.vote(20)}<p>Aus der Terminfindung „${pollOpt.pollTitle}“: ${short(pollOpt.starts_at)} · ${pollOpt.members.length} können.</p></div>` : ''}
       <form id="evf" novalidate>
         <div class="grid2">
@@ -137,22 +137,22 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
 
         <div class="field"><span class="label">Workout</span>
           <div class="seg" role="group" aria-label="Workout-Modus">
-            <button type="button" data-action="mode" data-mode="fixed" aria-pressed="${String(f.mode === 'fixed')}">Fixes WOD</button>
-            <button type="button" data-action="mode" data-mode="vote" aria-pressed="${String(f.mode === 'vote')}">Voting (2–3)</button>
+            <button type="button" data-action="mode" data-mode="fixed" aria-pressed="${String(f.mode === 'fixed')}">Fixes Workout</button>
+            <button type="button" data-action="mode" data-mode="vote" aria-pressed="${String(f.mode === 'vote')}">Abstimmung (2–3)</button>
           </div>
         </div>
 
         ${f.mode === 'fixed' ? html`
           <div class="field">
             <div class="label-row" style="margin-bottom:6px"><label class="label" for="workout">Workout-Text</label>
-              <button type="button" class="link" data-action="pick-template" data-target="main">aus vorlage / früher</button></div>
-            <textarea class="textarea" id="workout" name="workout" rows="8" placeholder="4 Runden:&#10;400 m Run&#10;20 Wall Balls&#10;&#10;Leer lassen = „WOD folgt“">${f.workout}</textarea>
+              <button type="button" class="link" data-action="pick-template" data-target="main">Aus Vorlage oder früher</button></div>
+            <textarea class="textarea" id="workout" name="workout" rows="8" placeholder="4 Runden:&#10;400 m Run&#10;20 Wall Balls&#10;&#10;Leer lassen = „Workout folgt“">${f.workout}</textarea>
             <p class="equip-inline" data-preview="workout">${equipPreview(f.workout, rules)}</p>
           </div>` : html`
           ${f.options.map(optionFields)}
-          ${f.options.length < 3 ? html`<button type="button" class="link" data-action="add-option" style="margin-top:6px">+ option hinzufügen</button>` : ''}
+          ${f.options.length < 3 ? html`<button type="button" class="link" data-action="add-option" style="margin-top:6px">+ Option hinzufügen</button>` : ''}
           <div class="grid2">
-            <label class="field"><span class="label">Voting bis (Datum)</span><input class="input" type="date" name="vote_date" value="${f.vote_date}"></label>
+            <label class="field"><span class="label">Abstimmung bis (Datum)</span><input class="input" type="date" name="vote_date" value="${f.vote_date}"></label>
             <label class="field"><span class="label">Uhrzeit</span><input class="input" type="time" name="vote_time" value="${f.vote_time}" step="300"></label>
           </div>
           <p class="hint">Danach wird automatisch abgeschlossen (alle 15 Min. geprüft). Bei Gleichstand wählst du den Sieger.</p>`}
@@ -166,18 +166,20 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
 
         <p class="err" id="evf-err" role="alert"></p>
         <div class="form-actions">
-          <button class="btn" type="submit">SPEICHERN</button>
-          ${ev ? html`<div class="row" style="justify-content:space-between">
-            <button type="button" class="link" data-action="share">teilen</button>
-            <a class="link" href="#/t/${ev.id}">ansehen</a>
-            ${ev.status === 'cancelled'
-              ? html`<button type="button" class="link" data-action="reactivate">reaktivieren</button>`
-              : html`<button type="button" class="link danger" data-action="cancel">absagen</button>`}
-            <button type="button" class="link muted" data-action="delete">löschen</button>
+          <button class="btn" type="submit">Speichern</button>
+          ${ev ? html`<div class="row" style="justify-content:center;gap:24px">
+            <button type="button" class="link" data-action="share">Teilen</button>
+            <a class="link" href="#/t/${ev.id}">So sehen es die Freunde</a>
           </div>` : ''}
         </div>
       </form>
-      ${participants()}`);
+      ${participants()}
+      ${ev ? html`<div class="danger-zone">
+        ${ev.status === 'cancelled'
+          ? html`<button type="button" class="link" style="padding:0" data-action="reactivate">Wieder aktivieren</button>`
+          : html`<button type="button" class="link danger" style="padding:0" data-action="cancel">Termin absagen</button>`}
+        <button type="button" class="link danger" style="padding:0" data-action="delete">Endgültig löschen</button>
+      </div>` : ''}`);
   };
 
   // Formularwerte in f übernehmen (vor Re-Render, damit nichts verloren geht)
@@ -222,7 +224,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
 
   async function pickTemplate(target) {
     let results = [];
-    const pick = await sheet('VORLAGE / FRÜHERES WORKOUT', html`
+    const pick = await sheet('Vorlage oder früheres Workout', html`
       <label class="sr-only" for="tpl-q">Suchen</label>
       <input class="input" id="tpl-q" type="search" placeholder="Suchen …" autocomplete="off">
       <div id="tpl-list" style="margin-top:8px"><p class="muted">Lädt …</p></div>`, (dlg, close) => {
@@ -233,7 +235,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         try {
           results = await api.searchWorkouts(q.value);
           mount(list, results.length ? html`${results.map((r, i) => html`<button class="pick" data-i="${i}">
-            <span class="label" style="display:block">${r.kind === 'template' ? '// VORLAGE' : '// ' + short(r.date)}</span>
+            <span class="k">${r.kind === 'template' ? 'Vorlage' : short(r.date)}</span>
             <span class="t" style="display:block">${r.title}</span><span class="w" style="display:block">${r.workout}</span></button>`)}`
             : html`<p class="muted">Nichts gefunden.</p>`);
         } catch (err) {
@@ -272,14 +274,14 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
       const link = appLink(`/t/${ev.id}`);
       await shareText(ev.workout_mode === 'vote' && !ev.vote_closed ? voteShareText(ev, link) : eventShareText(ev, link));
     } else if (a === 'cancel') {
-      if (await confirmSheet('ABSAGEN', `„${ev.title}“ am ${short(ev.starts_at)} absagen? Der Termin bleibt durchgestrichen sichtbar.`, 'Absagen', true)) {
+      if (await confirmSheet('Termin absagen', `„${ev.title}“ am ${short(ev.starts_at)} absagen? Der Termin bleibt durchgestrichen sichtbar.`, 'Absagen', true)) {
         try { await api.setEventStatus(ev.id, 'cancelled'); toast('Abgesagt'); navigate('/admin'); } catch (err) { toast(errText(err), 'error'); }
       }
     } else if (a === 'reactivate') {
       try { await api.setEventStatus(ev.id, 'planned'); toast('Wieder aktiv'); ev = await api.getEvent(ev.id, null); collect(); draw(); } catch (err) { toast(errText(err), 'error'); }
     } else if (a === 'delete') {
       const n = ev.rsvps.length;
-      if (await confirmSheet('LÖSCHEN', `„${ev.title}“ endgültig löschen?${n ? ` ${n} Zusagen gehen verloren.` : ''}${ev.series_id ? ' Achtung: Solange die Serie läuft, legt sie den Termin wieder an – dann lieber absagen.' : ''}`, 'Löschen', true)) {
+      if (await confirmSheet('Termin löschen', `„${ev.title}“ endgültig löschen?${n ? ` ${n} Zusagen gehen verloren.` : ''}${ev.series_id ? ' Achtung: Solange die Serie läuft, legt sie den Termin wieder an – dann lieber absagen.' : ''}`, 'Löschen', true)) {
         try { await api.deleteEvent(ev.id); toast('Gelöscht'); navigate('/admin'); } catch (err) { toast(errText(err), 'error'); }
       }
     } else if (a === 'close-vote') {
@@ -292,8 +294,8 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
       } catch (err) {
         if (String(err.code || err.message).includes('TIE')) {
           const max = Math.max(...ev.options.map((o) => o.votes));
-          const pick = await sheet('GLEICHSTAND – WÄHLE SIEGER', html`<div class="menu">${ev.options.map((o) => html`<button data-opt="${o.id}">
-            ${o.votes === max ? icons.check(22) : icons.vote(22)}<span>${o.label} <span class="mono muted" style="font-size:13px">· ${o.votes}</span></span></button>`)}</div>`,
+          const pick = await sheet('Gleichstand – wähle den Sieger', html`<div class="menu">${ev.options.map((o) => html`<button data-opt="${o.id}">
+            ${o.votes === max ? icons.check(22) : icons.vote(22)}<span>${o.label} <span class="muted" style="font-size:14px">· ${o.votes}</span></span></button>`)}</div>`,
           (dlg, close) => dlg.querySelectorAll('[data-opt]').forEach((b) => b.addEventListener('click', () => close(b.dataset.opt))));
           if (!pick) return;
           try {
@@ -350,7 +352,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         }
         toast('Gespeichert');
         if (!ev) {
-          const go = await confirmSheet('GESPEICHERT', 'Gleich in die WhatsApp-Gruppe teilen?', 'Teilen');
+          const go = await confirmSheet('Gespeichert', 'Gleich in die WhatsApp-Gruppe teilen?', 'Teilen');
           if (go) {
             const link = appLink(`/t/${newId}`);
             const fake = { ...payload, id: newId };

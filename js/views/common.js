@@ -18,7 +18,7 @@ export function topbar({ refresh = false } = {}) {
       ${me ? html`<a class="me-btn" href="#/wer" aria-label="Du bist ${me.name}. Nicht du? Wechseln">${icons.user()}<span>${me.name}</span></a>` : ''}
     </div>
   </header>
-  ${DEMO ? html`<p class="demo">DEMO-MODUS · Daten liegen nur in diesem Browser</p>` : ''}`;
+  ${DEMO ? html`<p class="demo">Demo – die Daten liegen nur in diesem Browser.</p>` : ''}`;
 }
 
 /** Bei BAD_CODE / BAD_MEMBER zurück ins Onboarding. Gibt true zurück, wenn behandelt. */
@@ -102,8 +102,7 @@ export function bindFriendActions(root, ctx) {
       case 'show-option': {
         if (!e) return;
         const id = el.dataset.option;
-        const cur = shownOption.get(e.id) || e.my_vote;
-        shownOption.set(e.id, cur === id ? '__none' : id);
+        shownOption.set(e.id, shownOption.get(e.id) === id ? null : id);
         ctx.rerender();
         return;
       }
@@ -130,7 +129,7 @@ export function bindFriendActions(root, ctx) {
       case 'calendar': {
         if (!e) return;
         const link = appLink(`/t/${e.id}`);
-        await sheet('IN KALENDER', html`<div class="menu">
+        await sheet('In Kalender eintragen', html`<div class="menu">
           <button data-cal="ics">${icons.download(22)} Apple / Outlook (.ics)</button>
           <a href="${googleLink(e, link)}" target="_blank" rel="noopener noreferrer" data-close>${icons.calendar(22)} Google Kalender</a>
         </div>`, (dlg, close) => {
@@ -178,7 +177,7 @@ export function bindFriendActions(root, ctx) {
 
       case 'dismiss-a2hs':
         state.setFlag('a2hs');
-        el.closest('.banner')?.remove();
+        el.closest('.tip')?.remove();
         return;
 
       default:

@@ -1,9 +1,9 @@
-// Terminfindung als Matrix: Zeilen = Personen, Spalten = Zeitoptionen.
+// Terminfindung: Matrix (Zeilen = Personen, Spalten = Zeitoptionen) und Listenzeile fürs Board.
 import { html } from '../html.js';
 import { icons } from '../icons.js';
-import { vienna, deadline } from '../format.js';
+import { vienna, dueText, short, wdShort, dm, hhmm } from '../format.js';
 
-const WD = ['MO', 'DI', 'MI', 'DO', 'FR', 'SA', 'SO'];
+const WD = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 const pad = (n) => String(n).padStart(2, '0');
 
 export function optionHead(t) {
@@ -20,7 +20,6 @@ export function bestOptionIds(poll) {
 /**
  * @param poll  poll_json
  * @param me    { id, name } oder null
- * @param opts  { editable: boolean, admin: boolean }
  */
 export function pollMatrix(poll, me, { editable = true } = {}) {
   const best = bestOptionIds(poll);
@@ -39,29 +38,46 @@ export function pollMatrix(poll, me, { editable = true } = {}) {
           <th class="who" scope="row">${me.name} (du)</th>
           ${poll.options.map((o) => canEdit
             ? html`<td><button class="cell-btn" data-action="poll-toggle" data-poll="${poll.id}" data-option="${o.id}"
-                aria-pressed="${String(mine.has(o.id))}" aria-label="${mine.has(o.id) ? 'Kann' : 'Kann nicht'}"><span class="box">${mine.has(o.id) ? icons.check(14) : ''}</span></button></td>`
-            : html`<td>${mine.has(o.id) ? html`<span class="tick">✓</span>` : ''}</td>`)}
+                aria-pressed="${String(mine.has(o.id))}" aria-label="${short(o.starts_at)} – ich kann"><span class="box">${mine.has(o.id) ? icons.check(14) : ''}</span></button></td>`
+            : html`<td>${mine.has(o.id) ? html`<span class="tick" aria-label="kann">${icons.check(16)}</span>` : ''}</td>`)}
         </tr>` : ''}
         ${others.map((p) => html`<tr>
           <th class="who" scope="row">${p.name}</th>
-          ${poll.options.map((o) => html`<td>${o.members.includes(p.id) ? html`<span class="tick" aria-label="kann">✓</span>` : html`<span class="sr-only">kann nicht</span>`}</td>`)}
+          ${poll.options.map((o) => html`<td>${o.members.includes(p.id)
+            ? html`<span class="tick" style="display:inline-grid" aria-label="kann">${icons.check(16)}</span>`
+            : html`<span class="sr-only">kann nicht</span>`}</td>`)}
         </tr>`)}
       </tbody>
       <tfoot><tr>
         <td class="who"></td>
-        ${poll.options.map((o) => html`<td class="${best.has(o.id) ? 'best' : ''}">${o.members.length} können</td>`)}
+        ${poll.options.map((o) => html`<td class="num ${best.has(o.id) ? 'best' : ''}">${o.members.length}</td>`)}
       </tr></tfoot>
     </table>
   </div>`;
 }
 
+/** Ganze Terminfindung (eigene Seite) */
 export function pollBlock(poll, me) {
-  return html`<section class="block" data-poll-block="${poll.id}">
-    <div class="label-row"><span class="label">// TERMINFINDUNG</span>
-      ${poll.deadline ? html`<span class="label ${poll.open ? 'accent' : ''}">${poll.open ? 'BIS ' + deadline(poll.deadline) : 'ZU'}</span>` : ''}</div>
-    <h2 class="block-title">${poll.title}</h2>
-    <p class="hint" style="margin:0 0 12px">${poll.open ? (me ? 'Tipp in deiner Zeile alles an, was dir passt.' : '') : 'Die Umfrage ist geschlossen.'}</p>
+  return html`<section data-poll-block="${poll.id}">
+    <p class="when" style="margin:0 0 16px">${poll.open
+      ? (poll.deadline ? `Antworten bis ${dueText(poll.deadline)}. ` : '') + (me ? 'Hak in deiner Zeile alles an, was dir passt.' : '')
+      : 'Die Umfrage ist geschlossen.'}</p>
     ${pollMatrix(poll, me)}
     <div class="actions"><button class="icon-btn" data-action="share-poll" data-poll="${poll.id}">${icons.share(18)} Teilen</button></div>
   </section>`;
+}
+
+/** Listenzeile fürs Board */
+export function pollRow(poll, me) {
+  const best = poll.options.filter((o) => bestOptionIds(poll).has(o.id));
+  const answered = poll.people.some((p) => me && p.id === me.id);
+  const parts = [];
+  if (poll.open && me && !answered) parts.push(html`<span class="todo">Noch nicht beantwortet</span>`);
+  if (best.length) parts.push(`vorne: ${best.map((o) => `${wdShort(o.starts_at)} ${dm(o.starts_at)} ${hhmm(o.starts_at)}`).join(', ')}`);
+  if (poll.deadline && poll.open) parts.push(`bis ${dueText(poll.deadline)}`);
+  return html`<li><a class="list-item" href="#/umfrage/${poll.id}">
+    <span class="date" aria-hidden="true" style="color:var(--muted)">${icons.calendar(20)}</span>
+    <span class="grow"><span class="t">${poll.title}</span><span class="m">${parts.map((p, i) => html`${i ? ' · ' : ''}${p}`)}</span></span>
+    <span class="chev">${icons.chevron()}</span>
+  </a></li>`;
 }

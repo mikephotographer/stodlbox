@@ -26,7 +26,7 @@ export async function renderSeriesForm(root, id) {
   const v = s || { title: 'Samstags-WOD', weekday: 6, start_time: '09:00', duration_min: settings.default_duration_min || 90, capacity: settings.default_capacity, starts_on: todayInput(), ends_on: '', active: true };
 
   mount(root, html`${adminHead(s ? 'Serie' : 'Neue Serie', { back: '#/admin' })}
-    ${s && !s.active ? html`<div class="banner"><span class="tag">PAUSIERT</span><p>Diese Serie erzeugt keine neuen Termine.</p></div>` : ''}
+    ${s && !s.active ? html`<div class="banner"><p><strong>Pausiert.</strong> Diese Serie legt keine neuen Termine an.</p></div>` : ''}
     <p class="hint">Die Serie legt automatisch Termine für die nächsten 6 Wochen an (täglich geprüft). Das Workout bleibt leer („WOD folgt“) – du trägst es beim einzelnen Termin ein.</p>
     <form id="sf" novalidate>
       <label class="field"><span class="label">Titel</span><input class="input" name="title" maxlength="80" required value="${v.title}"></label>
@@ -48,9 +48,9 @@ export async function renderSeriesForm(root, id) {
       <div class="form-actions">
         <button class="btn" type="submit">${s ? 'SPEICHERN' : 'SERIE ANLEGEN'}</button>
         ${s ? (s.active
-          ? html`<button type="button" class="btn ghost" data-action="pause">SERIE PAUSIEREN / BEENDEN</button>`
-          : html`<button type="button" class="btn ghost" data-action="resume">SERIE FORTSETZEN</button>
-                 <button type="button" class="link danger" data-action="purge">künftige termine ohne zusagen löschen</button>`) : ''}
+          ? html`<button type="button" class="btn ghost" data-action="pause">Serie pausieren oder beenden</button>`
+          : html`<button type="button" class="btn ghost" data-action="resume">Serie fortsetzen</button>
+                 <button type="button" class="link danger" data-action="purge">Künftige Termine ohne Zusagen löschen</button>`) : ''}
       </div>
     </form>`);
 
@@ -80,7 +80,7 @@ export async function renderSeriesForm(root, id) {
     if (!a || !s) return;
     try {
       if (a.dataset.action === 'pause') {
-        if (!(await confirmSheet('PAUSIEREN', 'Die Serie erzeugt dann keine neuen Termine mehr. Bestehende Termine bleiben.', 'Pausieren'))) return;
+        if (!(await confirmSheet('Serie pausieren', 'Die Serie erzeugt dann keine neuen Termine mehr. Bestehende Termine bleiben.', 'Pausieren'))) return;
         await api.setSeriesActive(s.id, false);
         toast('Pausiert');
         renderSeriesForm(root, s.id);
@@ -89,7 +89,7 @@ export async function renderSeriesForm(root, id) {
         toast('Läuft wieder');
         renderSeriesForm(root, s.id);
       } else if (a.dataset.action === 'purge') {
-        if (!(await confirmSheet('LÖSCHEN', 'Alle künftigen Termine dieser Serie ohne Zusagen und Stimmen löschen?', 'Löschen', true))) return;
+        if (!(await confirmSheet('Termine löschen', 'Alle künftigen Termine dieser Serie ohne Zusagen und Stimmen löschen?', 'Löschen', true))) return;
         const n = await api.deleteEmptySeriesEvents(s.id);
         toast(`${n} ${n === 1 ? 'Termin' : 'Termine'} gelöscht`);
       }
@@ -129,13 +129,13 @@ export async function renderPollForm(root, id) {
   const draw = () => mount(root, html`${adminHead(poll ? 'Terminfindung' : 'Neue Terminfindung', { back: '#/admin/umfragen' })}
     <form id="pf" novalidate>
       <label class="field"><span class="label">Titel</span><input class="input" name="title" maxlength="80" required placeholder="z. B. Training KW 47" value="${f.title}"></label>
-      <p class="label" style="margin-top:20px">// ZEITOPTIONEN (2–6)</p>
+      <h2 class="section-title" style="margin-top:24px">Zeitoptionen (2–6)</h2>
       ${f.options.map((o, i) => html`<div class="grid2" style="grid-template-columns:1fr 110px auto;align-items:end">
         <label class="field"><span class="label">Option ${i + 1}${o.n ? ` · ${o.n} können` : ''}</span><input class="input" type="date" name="o_date_${i}" value="${o.date}" min="${todayInput()}" required></label>
         <label class="field"><span class="sr-only">Uhrzeit Option ${i + 1}</span><input class="input" type="time" name="o_time_${i}" value="${o.time}" step="300" required></label>
         ${f.options.length > 2 ? html`<button type="button" class="icon-btn" data-action="rm" data-i="${i}" aria-label="Option ${i + 1} entfernen" style="margin-top:16px">–</button>` : html`<span></span>`}
       </div>`)}
-      ${f.options.length < 6 ? html`<button type="button" class="link" data-action="add" style="margin-top:6px">+ option hinzufügen</button>` : ''}
+      ${f.options.length < 6 ? html`<button type="button" class="link" data-action="add" style="margin-top:6px">+ Option hinzufügen</button>` : ''}
       <div class="grid2">
         <label class="field"><span class="label">Antworten bis (optional)</span><input class="input" type="date" name="dl_date" value="${f.dl_date}"></label>
         <label class="field"><span class="label">Uhrzeit</span><input class="input" type="time" name="dl_time" value="${f.dl_time}" step="300"></label>

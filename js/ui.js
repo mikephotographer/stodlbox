@@ -53,7 +53,7 @@ export function sheet(title, content, bind) {
     dlg.className = 'sheet';
     dlg.setAttribute('aria-label', title);
     mount(dlg, html`<div class="sheet-inner">
-      <div class="sheet-head"><span class="label">// ${title}</span>
+      <div class="sheet-head"><h2>${title}</h2>
         <button class="icon-btn" data-close aria-label="Schließen">${icons.close()}</button></div>
       ${content}
     </div>`);

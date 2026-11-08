@@ -95,3 +95,21 @@ export function relDay(t) {
 }
 
 export const WEEKDAYS = WD_LONG;
+
+/** „Sa“ */
+export const wdShort = (t) => { const s = WD_SHORT[vienna(t).wd]; return s[0] + s[1].toLowerCase(); };
+/** „21.11.“ */
+export const dm = (t) => { const v = vienna(t); return `${pad(v.d)}.${pad(v.m)}.`; };
+/** „Samstag, 21. November · 09:00“ */
+export const whenLine = (t) => `${long(t)} · ${hhmm(t)}`;
+/** „heute“, „morgen“, „in 6 Tagen“ oder leer */
+export function relText(t) {
+  const r = relDay(t);
+  if (!r) return '';
+  return r === 'HEUTE' ? 'heute' : r === 'MORGEN' ? 'morgen' : r.replace('IN ', 'in ').replace(' TAGEN', ' Tagen');
+}
+/** „Fr 20:00“ (für Fristen in derselben Woche), sonst „Fr 20.11. 20:00“ */
+export function dueText(t) {
+  const days = (Date.parse(t) - Date.now()) / 864e5;
+  return days < 6 ? `${wdShort(t)} ${hhmm(t)}` : `${wdShort(t)} ${dm(t)} ${hhmm(t)}`;
+}

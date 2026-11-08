@@ -11,7 +11,6 @@ export function renderCode(root, { error } = {}) {
   document.title = 'STODLBOX · Code';
   mount(root, html`<div class="screen">
     <div class="topbar">${logo}</div>
-    <p class="label">// ZUGANG ZUR TRAININGSGRUPPE</p>
     <h1>Code eingeben</h1>
     <p class="lead">Die Stodlbox ist nur für unsere Trainingsgruppe. Frag Mike nach dem Link.</p>
     <form id="code-form" novalidate>
@@ -21,7 +20,7 @@ export function renderCode(root, { error } = {}) {
       <p class="err" id="code-err" role="alert">${error || ''}</p>
       <div class="form-actions"><button class="btn" type="submit">WEITER</button></div>
     </form>
-    ${DEMO ? html`<p class="demo">DEMO-MODUS · Code: STODL-DEMO</p>` : ''}
+    ${DEMO ? html`<p class="demo">Demo – Code: STODL-DEMO</p>` : ''}
   </div>`);
   const form = root.querySelector('#code-form');
   const input = form.elements.code;
@@ -48,14 +47,13 @@ export async function renderWho(root) {
   document.title = 'STODLBOX · Wer bist du?';
   mount(root, html`<div class="screen">
     <div class="topbar">${logo}</div>
-    <p class="label">// SCHRITT 2 VON 2</p>
     <h1>Wer bist du?</h1>
     <p class="lead">Wähl deinen Namen. Das merkt sich dein Handy.</p>
     <div id="names" class="name-grid" aria-busy="true">
       ${[1, 2, 3, 4].map(() => html`<div class="name-tile skeleton" aria-hidden="true"></div>`)}
     </div>
     <div class="section">
-      <p class="label">// NEU HIER?</p>
+      <h2 class="section-title">Neu hier?</h2>
       <form id="new-form" class="row" style="margin-top:10px;flex-wrap:nowrap" novalidate>
         <label class="sr-only" for="new-name">Dein Name</label>
         <input class="input" id="new-name" name="name" maxlength="30" autocomplete="given-name" placeholder="Namen anlegen" required>

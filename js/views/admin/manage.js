@@ -41,7 +41,7 @@ export async function renderTemplates(root) {
     <p class="hint" style="margin-bottom:12px">Vorlagen wählst du beim Termin über „aus vorlage“. Dort kannst du auch frühere Workouts übernehmen.</p>
     ${list.length ? html`<ul class="list">${list.map((t) => html`<li><button class="pick" data-action="edit" data-id="${t.id}" style="padding:14px 0">
       <span class="t" style="display:block">${t.title}</span><span class="w" style="display:block">${t.workout}</span></button></li>`)}</ul>`
-      : html`<div class="empty-state"><p class="label">// NOCH KEINE VORLAGEN</p><p>Leg eine an oder hak beim Termin „Als Vorlage speichern“ an.</p></div>`}`);
+      : html`<div class="empty-state"><p class="label">Noch keine Vorlagen</p><p>Leg eine an oder hak beim Termin „Als Vorlage speichern“ an.</p></div>`}`);
   if (!(await load())) return;
   draw();
 
@@ -50,12 +50,12 @@ export async function renderTemplates(root) {
     if (!a) return;
     const t = a.dataset.id ? list.find((x) => x.id === a.dataset.id) : null;
     let del = false;
-    const data = await sheet(t ? 'VORLAGE' : 'NEUE VORLAGE', html`<form novalidate>
+    const data = await sheet(t ? 'Vorlage bearbeiten' : 'Neue Vorlage', html`<form novalidate>
       <label class="field" style="margin-top:0"><span class="label">Titel</span><input class="input" name="title" maxlength="80" value="${t ? t.title : ''}" required></label>
       <label class="field"><span class="label">Workout</span><textarea class="textarea" name="workout" rows="8" required>${t ? t.workout : ''}</textarea></label>
       <p class="err" role="alert"></p>
       <div class="form-actions"><button class="btn" type="submit">Speichern</button>
-        ${t ? html`<button class="link danger" type="button" data-del>vorlage löschen</button>` : ''}
+        ${t ? html`<button class="link danger" type="button" data-del>Vorlage löschen</button>` : ''}
         <button class="link" type="button" data-close>abbrechen</button></div></form>`, (dlg, close) => {
       const form = dlg.querySelector('form');
       form.addEventListener('submit', (ev) => {
@@ -69,7 +69,7 @@ export async function renderTemplates(root) {
     });
     try {
       if (del && t) {
-        if (await confirmSheet('LÖSCHEN', `Vorlage „${t.title}“ löschen?`, 'Löschen', true)) { await api.deleteTemplate(t.id); toast('Gelöscht'); }
+        if (await confirmSheet('Vorlage löschen', `Vorlage „${t.title}“ löschen?`, 'Löschen', true)) { await api.deleteTemplate(t.id); toast('Gelöscht'); }
       } else if (data) {
         await api.saveTemplate({ id: t && t.id, ...data });
         toast('Gespeichert');
@@ -98,11 +98,11 @@ export async function renderEquipment(root) {
       <div class="row" style="flex-wrap:nowrap">
         <button class="pick" data-action="edit" data-id="${r.id}" style="border:0;padding:0;flex:1">
           <span class="t" style="display:block">${r.tip}</span>
-          <span class="kw" style="display:block">${r.keywords.join(', ')}${r.case_sensitive ? ' · GROSS/KLEIN BEACHTEN' : ''}</span></button>
+          <span class="kw" style="display:block">${r.keywords.join(', ')}${r.case_sensitive ? ' · Groß-/Kleinschreibung beachten' : ''}</span></button>
         <label class="check" style="margin:0"><input type="checkbox" data-toggle="${r.id}" ${r.active ? 'checked' : ''}><span class="sr-only">${r.tip} aktiv</span></label>
       </div></div>`)}
     <div class="sep" role="presentation"></div>
-    <p class="label">// TESTEN</p>
+    <h2 class="section-title">Ausprobieren</h2>
     <label class="sr-only" for="eq-test">Testtext</label>
     <textarea class="textarea" id="eq-test" rows="5" style="margin-top:8px">${testText}</textarea>
     <div class="equip" id="eq-out">${icons.warn(22)}<p>${testResult()}</p></div>`);
@@ -125,14 +125,14 @@ export async function renderEquipment(root) {
     if (!a) return;
     const r = a.dataset.id ? rules.find((x) => x.id === a.dataset.id) : null;
     let del = false;
-    const data = await sheet(r ? 'REGEL' : 'NEUE REGEL', html`<form novalidate>
+    const data = await sheet(r ? 'Regel bearbeiten' : 'Neue Regel', html`<form novalidate>
       <label class="field" style="margin-top:0"><span class="label">Tipp</span><input class="input" name="tip" maxlength="60" value="${r ? r.tip : ''}" placeholder="z. B. Grips" required></label>
       <label class="field"><span class="label">Keywords (mit Komma getrennt)</span><textarea class="textarea" name="keywords" rows="3" style="min-height:90px">${r ? r.keywords.join(', ') : ''}</textarea></label>
       <label class="check"><input type="checkbox" name="case_sensitive" ${r && r.case_sensitive ? 'checked' : ''}> Groß-/Kleinschreibung beachten (z. B. „DU“)</label>
       <label class="check"><input type="checkbox" name="active" ${!r || r.active ? 'checked' : ''}> Aktiv</label>
       <p class="err" role="alert"></p>
       <div class="form-actions"><button class="btn" type="submit">Speichern</button>
-        ${r ? html`<button class="link danger" type="button" data-del>regel löschen</button>` : ''}
+        ${r ? html`<button class="link danger" type="button" data-del>Regel löschen</button>` : ''}
         <button class="link" type="button" data-close>abbrechen</button></div></form>`, (dlg, close) => {
       const form = dlg.querySelector('form');
       form.addEventListener('submit', (ev) => {
@@ -145,7 +145,7 @@ export async function renderEquipment(root) {
     });
     try {
       if (del && r) {
-        if (await confirmSheet('LÖSCHEN', `Regel „${r.tip}“ löschen?`, 'Löschen', true)) { await api.deleteRule(r.id); toast('Gelöscht'); }
+        if (await confirmSheet('Regel löschen', `Regel „${r.tip}“ löschen?`, 'Löschen', true)) { await api.deleteRule(r.id); toast('Gelöscht'); }
       } else if (data) {
         await api.saveRule({ ...(r || {}), ...data });
         toast('Gespeichert');
@@ -169,9 +169,9 @@ export async function renderPeople(root) {
     const row = (p) => html`<div class="p-row"><span class="n ${p.active ? '' : 'muted'}">${p.name}</span>
       <button class="icon-btn" data-action="person" data-id="${p.id}" aria-label="${p.name} bearbeiten">${icons.more(18)}</button></div>`;
     mount(root, html`${adminHead('Leute', { back: '#/admin/mehr', plus: 'new' })}
-      <p class="label" style="margin:8px 0">// AKTIV · ${active.length}</p>
+      <h2 class="section-title">Aktiv · ${active.length}</h2>
       ${active.map(row)}
-      ${inactive.length ? html`<p class="label" style="margin:24px 0 8px">// DEAKTIVIERT · ${inactive.length}</p>${inactive.map(row)}` : ''}
+      ${inactive.length ? html`<h2 class="section-title" style="margin-top:28px">Deaktiviert · ${inactive.length}</h2>${inactive.map(row)}` : ''}
       <p class="hint" style="margin-top:16px">Deaktivierte tauchen nicht mehr in „Wer bist du?“ auf, ihre Historie bleibt.</p>`);
   };
   if (!(await load())) return;
@@ -182,17 +182,17 @@ export async function renderPeople(root) {
     if (!a) return;
     try {
       if (a.dataset.action === 'new') {
-        const d = await formSheet('NEUER NAME', html`<label class="field" style="margin-top:0"><span class="label">Name</span><input class="input" name="name" maxlength="30" required></label>`,
+        const d = await formSheet('Neuer Name', html`<label class="field" style="margin-top:0"><span class="label">Name</span><input class="input" name="name" maxlength="30" required></label>`,
           'Anlegen', (x) => (x.name.trim().length < 2 ? 'Mindestens 2 Zeichen.' : ''));
         if (d) { await api.adminAddMember(d.name); toast('Angelegt'); }
       } else if (a.dataset.action === 'person') {
         const p = people.find((x) => x.id === a.dataset.id);
-        const choice = await sheet(p.name.toUpperCase(), html`<div class="menu">
+        const choice = await sheet(p.name, html`<div class="menu">
           <button data-c="rename">Umbenennen</button>
           ${p.active ? html`<button data-c="merge">Zusammenführen mit …</button><button data-c="off">Deaktivieren</button>` : html`<button data-c="on">Wieder aktivieren</button>`}
         </div>`, (dlg, close) => dlg.querySelectorAll('[data-c]').forEach((b) => b.addEventListener('click', () => close(b.dataset.c))));
         if (choice === 'rename') {
-          const d = await formSheet('UMBENENNEN', html`<label class="field" style="margin-top:0"><span class="label">Name</span><input class="input" name="name" maxlength="30" value="${p.name}" required></label>`,
+          const d = await formSheet('Umbenennen', html`<label class="field" style="margin-top:0"><span class="label">Name</span><input class="input" name="name" maxlength="30" value="${p.name}" required></label>`,
             'Speichern', (x) => (x.name.trim().length < 2 ? 'Mindestens 2 Zeichen.' : ''));
           if (d) { await api.renameMember(p.id, d.name); toast('Umbenannt'); }
         } else if (choice === 'off') {
@@ -201,12 +201,12 @@ export async function renderPeople(root) {
           await api.setMemberActive(p.id, true); toast('Aktiv');
         } else if (choice === 'merge') {
           const targets = people.filter((x) => x.active && x.id !== p.id);
-          const into = await sheet(`„${p.name}“ ZUSAMMENFÜHREN MIT`, html`<p class="hint" style="margin-bottom:8px">Alle Zusagen und Stimmen von „${p.name}“ gehen auf die gewählte Person über. „${p.name}“ wird deaktiviert.</p>
+          const into = await sheet(`„${p.name}“ zusammenführen mit`, html`<p class="hint" style="margin-bottom:8px">Alle Zusagen und Stimmen von „${p.name}“ gehen auf die gewählte Person über. „${p.name}“ wird deaktiviert.</p>
             <div class="menu">${targets.map((t) => html`<button data-t="${t.id}">${t.name}</button>`)}</div>`,
           (dlg, close) => dlg.querySelectorAll('[data-t]').forEach((b) => b.addEventListener('click', () => close(b.dataset.t))));
           if (into) {
             const t = people.find((x) => x.id === into);
-            if (await confirmSheet('SICHER?', `„${p.name}“ in „${t.name}“ zusammenführen? Das lässt sich nicht rückgängig machen.`, 'Zusammenführen', true)) {
+            if (await confirmSheet('Sicher?', `„${p.name}“ in „${t.name}“ zusammenführen? Das lässt sich nicht rückgängig machen.`, 'Zusammenführen', true)) {
               await api.mergeMembers(p.id, into);
               toast('Zusammengeführt');
               if (state.member && state.member.id === p.id) state.member = { id: t.id, name: t.name };
@@ -229,7 +229,7 @@ export async function renderSettings(root) {
   const draw = () => {
     const link = state.code ? appLink('/') : null;
     mount(root, html`${adminHead('Einstellungen', { back: '#/admin/mehr' })}
-      <p class="label" style="margin-top:8px">// EINLADUNGSLINK</p>
+      <h2 class="section-title">Einladungslink</h2>
       ${link ? html`<div class="copy-box"><label class="sr-only" for="inv">Einladungslink</label><input class="input" id="inv" readonly value="${link}">
           <button class="icon-btn" data-action="copy" aria-label="Link kopieren">${icons.copy(18)}</button></div>
         <div class="actions"><button class="icon-btn fill" data-action="share-invite">${icons.share(18)} In WhatsApp teilen</button></div>`
@@ -239,26 +239,26 @@ export async function renderSettings(root) {
           <button class="btn sm" type="submit">OK</button></form>`}
 
       <div class="sep" role="presentation"></div>
-      <p class="label">// GRUPPEN-CODE ÄNDERN</p>
+      <h2 class="section-title">Gruppen-Code ändern</h2>
       <p class="hint">Danach funktionieren alte Links nicht mehr – alle brauchen den neuen Link.</p>
       <form id="newcode" class="row" style="margin-top:8px;flex-wrap:nowrap" novalidate>
         <label class="sr-only" for="nc">Neuer Code</label>
         <input class="input" id="nc" name="code" placeholder="STODL-${Math.random().toString(36).slice(2, 6).toUpperCase()}" autocapitalize="characters" autocomplete="off" minlength="4" maxlength="40">
-        <button class="btn sm" type="submit">ÄNDERN</button></form>
+        <button class="btn sm" type="submit">Ändern</button></form>
 
       <div class="sep" role="presentation"></div>
-      <p class="label">// STANDARDWERTE FÜR NEUE TERMINE</p>
+      <h2 class="section-title">Standardwerte für neue Termine</h2>
       <form id="defaults" novalidate>
         <div class="grid2">
           <label class="field"><span class="label">Dauer (Min.)</span><input class="input" type="number" name="default_duration_min" min="15" max="600" step="5" value="${s.default_duration_min}"></label>
           <label class="field"><span class="label">Max. Teilnehmer</span><input class="input" type="number" name="default_capacity" min="1" placeholder="unbegrenzt" value="${s.default_capacity ?? ''}"></label>
         </div>
-        <div class="form-actions"><button class="btn ghost" type="submit">SPEICHERN</button></div>
+        <div class="form-actions"><button class="btn ghost" type="submit">Speichern</button></div>
       </form>
 
       <div class="sep" role="presentation"></div>
       <div class="kv"><span class="label">Admin</span><span class="mono" style="font-size:13px">${s.admin_email}</span></div>
-      ${DEMO ? html`<div class="form-actions"><button class="btn danger" data-action="reset-demo">DEMO-DATEN ZURÜCKSETZEN</button></div>` : ''}`);
+      ${DEMO ? html`<div class="form-actions"><button class="btn danger" data-action="reset-demo">Demo-Daten zurücksetzen</button></div>` : ''}`);
   };
   draw();
 
@@ -268,7 +268,7 @@ export async function renderSettings(root) {
     const link = appLink('/');
     if (a.dataset.action === 'copy') await copyText(link);
     if (a.dataset.action === 'share-invite') await shareText(`🏋️ STODLBOX – Training im Stadl\nHier siehst du alle Termine und sagst zu 👉 ${link}`);
-    if (a.dataset.action === 'reset-demo' && (await confirmSheet('ZURÜCKSETZEN', 'Alle Demo-Daten neu erzeugen?', 'Zurücksetzen', true))) {
+    if (a.dataset.action === 'reset-demo' && (await confirmSheet('Zurücksetzen', 'Alle Demo-Daten neu erzeugen?', 'Zurücksetzen', true))) {
       await api.resetDemo();
       state.reset();
       toast('Demo zurückgesetzt');
@@ -287,7 +287,7 @@ export async function renderSettings(root) {
         } else if (form.id === 'newcode') {
           const c = normCode(form.elements.code.value || form.elements.code.placeholder);
           if (c.length < 4) { toast('Mindestens 4 Zeichen.', 'error'); return; }
-          if (!(await confirmSheet('CODE ÄNDERN', `Neuer Code: ${c}. Alte Links funktionieren dann nicht mehr.`, 'Ändern', true))) return;
+          if (!(await confirmSheet('Code ändern', `Neuer Code: ${c}. Alte Links funktionieren dann nicht mehr.`, 'Ändern', true))) return;
           await api.setGroupCode(c);
           state.code = c;
           toast('Neuer Code gilt');
