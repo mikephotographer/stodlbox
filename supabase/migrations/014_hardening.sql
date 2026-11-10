@@ -169,3 +169,6 @@ revoke all on function photo_storage_bytes() from public, anon, authenticated;
 revoke all on function assert_code(text) from public, anon, authenticated;
 revoke all on function check_code(text) from public;
 grant execute on function check_code(text) to anon, authenticated;
+
+-- Kontrolle: zeigt den belegten Foto-Speicher in Bytes (sollte > 0 sein, wenn Fotos da sind)
+select photo_storage_bytes() as foto_speicher_bytes, (select count(*) from storage.objects where bucket_id = 'photos') as dateien;
