@@ -680,6 +680,60 @@ begin
   raise notice 'OK 17: Geheime Termine';
 end $$;
 
+-- ---------------------------------------------------------------
+-- 18) Code-Bremse und Upload-Grenze (setzt Migration 014 voraus)
+-- ---------------------------------------------------------------
+do $$
+declare i int; locked boolean := false; ev uuid; a uuid; tk jsonb; p text;
+begin
+  perform pg_temp.as_anon();
+  for i in 1..25 loop
+    begin
+      perform get_board('RATEN-' || i, null);
+    exception when others then
+      if sqlerrm like '%TOO_MANY%' then locked := true; exit; end if;
+      assert sqlerrm like '%BAD_CODE%', sqlerrm;
+    end;
+  end loop;
+  assert locked, 'Nach 20 Fehlversuchen sollte gesperrt sein';
+  begin
+    perform check_code('TEST-CODE');
+    raise exception 'Gesperrt hätte auch der richtige Code nicht durchgehen dürfen';
+  exception when others then assert sqlerrm like '%TOO_MANY%', sqlerrm; end;
+  -- Admin ist nie gesperrt
+  perform pg_temp.as_admin();
+  perform get_board(null, null);
+  -- Zähler zurücksetzen
+  for i in 0..31 loop execute format('select setval(%L, 0)', 'code_guard_' || i); end loop;
+  perform pg_temp.as_anon();
+  assert check_code('TEST-CODE'), 'Nach dem Zurücksetzen geht es wieder';
+
+  -- Upload-Grenze
+  perform pg_temp.as_system();
+  insert into members (name) values ('Upload Ulla') returning id into a;
+  insert into events (title, starts_at) values ('Upload-Training', now() - interval '1 hour') returning id into ev;
+  insert into rsvps (event_id, member_id, status) values (ev, a, 'yes');
+  perform pg_temp.as_anon();
+  tk := photo_ticket('TEST-CODE', ev, a);
+  p := tk->>'prefix';
+  assert photo_path_ok(p || gen_random_uuid() || '.jpg'), 'Erste Datei geht';
+  perform pg_temp.as_system();
+  insert into storage.objects (bucket_id, name, metadata)
+    select 'photos', p || gen_random_uuid() || '.jpg', '{"size": 1000}'::jsonb from generate_series(1, 80);
+  perform pg_temp.as_anon();
+  assert not photo_path_ok(p || gen_random_uuid() || '.jpg'), 'Nach 80 Dateien ist Schluss';
+  perform pg_temp.as_system();
+  delete from storage.objects where name like p || '%';
+  insert into storage.objects (bucket_id, name, metadata) values ('photos', 'voll/x.jpg', '{"size": 950000000}'::jsonb);
+  perform pg_temp.as_anon();
+  assert not photo_path_ok(p || gen_random_uuid() || '.jpg'), 'Voller Speicher: kein Upload';
+  begin
+    perform photo_ticket('TEST-CODE', ev, a);
+    raise exception 'Ticket bei vollem Speicher hätte nicht gehen dürfen';
+  exception when others then assert sqlerrm like '%STORAGE_FULL%', sqlerrm; end;
+  raise notice 'OK 18: Code-Bremse und Upload-Grenze';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

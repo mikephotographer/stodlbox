@@ -33,6 +33,9 @@ const MESSAGES = {
   BAD_TICKET: 'Der Upload hat zu lange gedauert. Bitte nochmal.',
   NOT_IMAGE: 'Das ist kein Foto, das wir lesen können.',
   VIDEO_TOO_BIG: 'Video zu groß (max. 50 MB). Kürzen oder in Full HD statt 4K filmen.',
+  TOO_MANY: 'Zu viele falsche Codes von hier. Bitte in 10 Minuten nochmal probieren.',
+  STORAGE_FULL: 'Der Foto-Speicher ist gerade voll. Bitte Mike Bescheid geben.',
+  USE_POST: 'Hat nicht geklappt – bitte die Seite neu laden.',
   RESULTS_EARLY: 'Ergebnisse gehen erst ab Trainingsbeginn.',
   VIDEO_LIMIT: 'Du hast schon 3 Videos von diesem Training hochgeladen.',
 };
