@@ -101,9 +101,9 @@ export function detectFormats(text) {
 
   // Chipper: For Time, nur eine Runde, mindestens 5 Übungen untereinander
   if (f.has('For Time') && !new RegExp(`(\\d+|${NUMWORDS})[ -]rounds?|rounds? (for time|of)|\\brunden\\b`).test(t)) {
-    const moves = t.split('\n').filter((l) => /^\s*\d[\d,.]*\s*(-|x|×)?\s*[a-zäöü]/.test(l) && !/^\s*[♂♀]/.test(l));
+    const moves = t.split('\n').filter((l) => (/^\s*\d[\d,.]*\s*(-|x|×)?\s*[a-zäöü]/.test(l) || /^\s*(run|row|swim|bike|ski|sprint)\b[^\n]*\d/.test(l)) && !/^\s*[♂♀]/.test(l));
     // mindestens 4 verschiedene Übungen (sonst ist es eine Leiter aus 2–3 Übungen)
-    const names = new Set(moves.map((l) => l.replace(/^[\s\d,.\-x×]+/, '').replace(/^(cal(orie)?s?\.?|meters?|m|ft\.?|foot|feet|-)\s+/, '').split(/[,(]/)[0].trim().split(/\s+/).slice(0, 2).join(' ').replace(/s\b/g, '')));
+    const names = new Set(moves.map((l) => l.replace(/^[\s\d,.\-x×]+/, '').replace(/^(cal(orie)?s?\.?|meters?|m|ft\.?|foot|feet|-)\s+/, '').split(/[,(]/)[0].replace(/[\d.,:-]+/g, ' ').replace(/\b(meters?|m|miles?|calories?|cal|ft|feet|foot|with|a|an|the|to)\b/g, ' ').trim().split(/\s+/).slice(0, 2).join(' ').replace(/s\b/g, '')));
     if (moves.length >= 5 && names.size >= 4) f.add('Chipper');
   }
   // Keine Art erkannt, aber Runden mit Übungen → meist auf Zeit
