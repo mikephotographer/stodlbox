@@ -87,13 +87,14 @@ const NUMWORDS = 'two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fif
 export function detectFormats(text) {
   const t = String(text || '').toLowerCase();
   const f = new Set();
-  if (/\bamrap\b|as many (rounds|reps)|so viele runden/.test(t)) f.add('AMRAP');
+  if (/\bamrap\b|as many (rounds|reps)|so viele runden|complete as many|max(imum)? reps possible/.test(t)) f.add('AMRAP');
   if (/\be\d*mom\b|every minute|on the minute|every \d+(:\d+)? ?min|every (two|three|four|five) minutes|jede minute|alle \d+ min/.test(t)) f.add('EMOM');
   if (/\btabata\b/.test(t)) f.add('Tabata');
   if (/death by|ladder|ascending|\bleiter\b/.test(t)) f.add('Leiter');
-  if (/1-?rep max|\b1 ?rm\b|\b\d ?rm\b|max(imum)? (load|weight)|heaviest|find (a|your) (\d-rep|max|heavy (single|double|triple))|\d-rep-max|establish a|\bheavy single|\bkraft\b|for load\b/.test(t)) f.add('Kraft');
+  if (/1-?rep max|\b1 ?rm\b|\b\d ?rm\b|max(imum)? (load|weight)|for max load|heaviest|find (a|your) (\d-rep|max|heavy (single|double|triple))|\d-rep-max|establish a|\bheavy single|\bkraft\b|for load\b/.test(t)) f.add('Kraft');
   if (/max(imum)? (reps|repetitions)|total reps|for reps|for max|as many reps|(?<!rep-)max (rounds|reps|pull|push|burpees)|score is (the )?(total|number)|fight gone bad/.test(t) && !f.has('AMRAP')) f.add('Max. Wdh.');
-  if (/\bfor time\b|\btime cap\b|\bauf zeit\b|for completion/.test(t)) f.add('For Time');
+  // „Time cap“ allein macht noch kein For Time (AMRAPs und Maximalversuche haben auch eines)
+  if (/\bfor (total )?time\b|\bauf zeit\b|for completion/.test(t) || (/\btime cap\b/.test(t) && !f.has('AMRAP') && !f.has('Kraft'))) f.add('For Time');
   // Absteigende Wiederholungen wie 21-15-9 oder 30-25-20-15-10-5 sind auf Zeit
   if (!f.size && /\b\d+(-\d+){2,}\b/.test(t)) f.add('For Time');
   if (/\brest\b|\bpause\b|then rest|followed by/.test(t) && /\brounds?\b|\bsets?\b|\bintervals?\b|\brunden\b/.test(t)) f.add('Intervalle');
@@ -101,7 +102,9 @@ export function detectFormats(text) {
   // Chipper: For Time, nur eine Runde, mindestens 5 Übungen untereinander
   if (f.has('For Time') && !new RegExp(`(\\d+|${NUMWORDS})[ -]rounds?|rounds? (for time|of)|\\brunden\\b`).test(t)) {
     const moves = t.split('\n').filter((l) => /^\s*\d[\d,.]*\s*(-|x|×)?\s*[a-zäöü]/.test(l) && !/^\s*[♂♀]/.test(l));
-    if (moves.length >= 5) f.add('Chipper');
+    // mindestens 4 verschiedene Übungen (sonst ist es eine Leiter aus 2–3 Übungen)
+    const names = new Set(moves.map((l) => l.replace(/^[\s\d,.\-x×]+/, '').replace(/^(cal(orie)?s?\.?|meters?|m|ft\.?|foot|feet|-)\s+/, '').split(/[,(]/)[0].trim().split(/\s+/).slice(0, 2).join(' ').replace(/s\b/g, '')));
+    if (moves.length >= 5 && names.size >= 4) f.add('Chipper');
   }
   // Keine Art erkannt, aber Runden mit Übungen → meist auf Zeit
   if (!f.size && new RegExp(`(\\d+|${NUMWORDS})[ -]rounds?|\\brunden\\b`).test(t)) f.add('For Time');
