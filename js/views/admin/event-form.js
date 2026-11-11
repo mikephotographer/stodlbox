@@ -86,7 +86,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     if (fromTpl) {
       f.mode = 'fixed';
       f.workout = fromTpl.workout;
-      if (!f.title.trim()) f.title = fromTpl.title;
+      if (f.title.trim() !== fromTpl.title) { fromTpl.oldTitle = f.title.trim(); f.title = fromTpl.title.slice(0, 80); }
     }
     history.replaceState(null, '', location.pathname + location.search + '#' + route().path);
   }
@@ -138,7 +138,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
   const draw = () => {
     mount(root, html`${adminHead(ev ? 'Termin' : 'Neuer Termin', { back: fromPoll ? '#/admin/umfragen' : '#/admin' })}
       ${ev && ev.status === 'cancelled' ? html`<div class="banner"><p><strong>Abgesagt.</strong> Die Freunde sehen den Termin durchgestrichen.</p></div>` : ''}
-      ${fromTpl ? html`<div class="banner">${icons.check(20)}<p>„${fromTpl.title}“ ist eingesetzt. Kurz prüfen und speichern.</p></div>` : ''}
+      ${fromTpl ? html`<div class="banner">${icons.check(20)}<p>Titel und Workout von „${fromTpl.title}“ übernommen${fromTpl.oldTitle ? ` (vorher: ${fromTpl.oldTitle})` : ''}. Kurz prüfen und speichern.</p></div>` : ''}
       ${pollOpt ? html`<div class="banner">${icons.vote(20)}<p>Aus der Terminfindung „${pollOpt.pollTitle}“: ${short(pollOpt.starts_at)} · ${pollOpt.members.length} können.</p></div>` : ''}
       <form id="evf" novalidate>
         <div class="grid2">
