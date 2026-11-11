@@ -7,6 +7,7 @@ import { errText, busy, toast, sheet, confirmSheet } from '../../ui.js';
 import { matchEquipment, equipmentSentence } from '../../equipment.js';
 import { appLink, shareText, copyText } from '../../share.js';
 import { navigate } from '../../router.js';
+import { assignToEvent } from '../../components/assign.js';
 import { adminHead } from './index.js';
 import { parseTags, matchesQuery, workoutRow, categoryChips, filterBar, filterSheet, matchesFilter, emptyFilter, benchOn, toggleBench } from '../../components/workouts.js';
 import { CATEGORIES, FORMATS, EQUIPMENT, EXTRAS, canonical, categoryOf, formatsOf, equipmentOf, extrasOf, orderTags, suggestTags } from '../../classify.js';
@@ -86,6 +87,7 @@ export async function renderWorkouts(root) {
     const w = a.dataset.id ? list.find((x) => x.id === a.dataset.id) : null;
     const res = await workoutSheet(w, filter.cat);
     try {
+      if (res === 'assign' && w) { await assignToEvent(w); return; }
       if (res === 'delete' && w) {
         if (await confirmSheet('Workout löschen', `„${w.title}“ aus der Datenbank löschen? Termine, die es schon verwenden, bleiben unverändert.`, 'Löschen', true)) {
           await api.deleteTemplate(w.id);
@@ -126,6 +128,7 @@ function workoutSheet(w, presetCat) {
     <label class="field"><span class="label">Notiz (optional)</span><textarea class="textarea" name="notes" rows="2" style="min-height:72px;font-family:var(--font-body);font-size:16px" placeholder="Skalierung, Herkunft, Tipps">${w && w.notes ? w.notes : ''}</textarea></label>
     <p class="err" role="alert"></p>
     <div class="form-actions"><button class="btn" type="submit">Speichern</button>
+      ${w ? html`<button class="btn ghost" type="button" data-assign>${icons.calendar(18)} Zu Termin hinzufügen</button>` : ''}
       ${w ? html`<button class="link danger" type="button" data-del>Workout löschen</button>` : ''}
       <button class="link" type="button" data-close>abbrechen</button></div></form>`, (dlg, close) => {
     const form = dlg.querySelector('form');
@@ -158,6 +161,7 @@ function workoutSheet(w, presetCat) {
       close({ title, workout, tags, notes: form.elements.notes.value.trim() || null });
     });
     dlg.querySelector('[data-del]')?.addEventListener('click', () => close('delete'));
+    dlg.querySelector('[data-assign]')?.addEventListener('click', () => close('assign'));
     if (!w) setTimeout(() => form.elements.title.focus(), 50);
   });
 }

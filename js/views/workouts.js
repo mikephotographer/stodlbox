@@ -10,6 +10,7 @@ import { timerLink } from '../components/event.js';
 import { state } from '../state.js';
 import { SCALES, bestPerPerson, best } from '../results.js';
 import { wdShort, dm } from '../format.js';
+import { adminHere, assignToEvent } from '../components/assign.js';
 
 // Bleibt zwischen Liste und Detail erhalten: Daten, Suche, Filter, Scroll-Position.
 let list = null;
@@ -115,8 +116,11 @@ export async function renderWorkout(root, id) {
       ${w.tags && w.tags.length ? tagLinks(w.tags) : ''}
       <div class="wod"><div class="wod-head"><span class="label">Workout</span>${timerLink(w.workout, w.title)}</div><div class="wod-body">${w.workout}</div></div>
       ${w.notes ? html`<p class="wo-notes">${w.notes}</p>` : ''}
+      <div class="form-actions" id="wo-admin" hidden><button type="button" class="btn ghost" data-action="assign">${icons.calendar(18)} Zu Termin hinzufügen</button></div>
       <section class="section" id="wo-results" hidden></section>
     </main>`);
+  root.onclick = (e) => { if (e.target.closest('[data-action="assign"]')) assignToEvent(w); };
+  adminHere().then((ok) => { const el = document.getElementById('wo-admin'); if (ok && el) el.hidden = false; });
   loadBests(w);
 }
 
