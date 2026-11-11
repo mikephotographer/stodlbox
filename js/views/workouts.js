@@ -4,7 +4,7 @@ import { icons } from '../icons.js';
 import { api } from '../api.js';
 import { errText } from '../ui.js';
 import { route, navigate } from '../router.js';
-import { matchesQuery, preview, categoryChips, filterBar, filterSheet, matchesFilter, filterFromTag, emptyFilter, metaLine, tagLinks, benchOn, toggleBench } from '../components/workouts.js';
+import { matchesQuery, preview, categoryChips, filterBar, filterSheet, matchesFilter, filterFromTag, emptyFilter, metaLine, tagLinks, benchOn, toggleBench, sortOpen } from '../components/workouts.js';
 import { topbar, handleAuthError } from './common.js';
 import { timerLink } from '../components/event.js';
 import { state } from '../state.js';
@@ -21,7 +21,7 @@ let scrollY = 0;
 
 async function ensureList() {
   if (list && Date.now() - loadedAt < 10 * 60 * 1000) return list;
-  list = await api.listWorkouts();
+  list = sortOpen(await api.listWorkouts());
   loadedAt = Date.now();
   return list;
 }

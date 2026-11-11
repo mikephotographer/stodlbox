@@ -164,3 +164,17 @@ export function workoutRow(w) {
     ${metaLine(w)}
     <span class="w">${preview(w.workout)}</span></button></li>`;
 }
+
+/** Open-Workouts: neuestes Jahr zuerst (26.1, 26.2, 26.3, 25.1 …), der Rest bleibt, wo er ist. */
+export function sortOpen(list) {
+  const key = (w) => /^open\s+(\d+)\.(\d+)(.*)$/i.exec(String(w.title).trim());
+  const idx = [];
+  list.forEach((w, i) => { if (key(w)) idx.push(i); });
+  const open = idx.map((i) => list[i]).sort((a, b) => {
+    const x = key(a); const y = key(b);
+    return (+y[1] - +x[1]) || (+x[2] - +y[2]) || x[3].localeCompare(y[3], 'de');
+  });
+  const out = [...list];
+  idx.forEach((i, n) => { out[i] = open[n]; });
+  return out;
+}

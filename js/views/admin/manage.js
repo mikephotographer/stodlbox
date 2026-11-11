@@ -9,7 +9,7 @@ import { appLink, shareText, copyText } from '../../share.js';
 import { navigate } from '../../router.js';
 import { assignToEvent } from '../../components/assign.js';
 import { adminHead } from './index.js';
-import { parseTags, matchesQuery, workoutRow, categoryChips, filterBar, filterSheet, matchesFilter, emptyFilter, benchOn, toggleBench } from '../../components/workouts.js';
+import { parseTags, matchesQuery, workoutRow, categoryChips, filterBar, filterSheet, matchesFilter, emptyFilter, benchOn, toggleBench, sortOpen } from '../../components/workouts.js';
 import { CATEGORIES, FORMATS, EQUIPMENT, EXTRAS, canonical, categoryOf, formatsOf, equipmentOf, extrasOf, orderTags, suggestTags } from '../../classify.js';
 
 /** Sheet mit Formular; resolve mit FormData-Objekt oder undefined */
@@ -39,7 +39,7 @@ export async function renderWorkouts(root) {
   let q = '';
   let filter = emptyFilter();
   const load = async () => {
-    try { list = await api.listTemplates(); } catch (e) { mount(root, html`${adminHead('Workouts')}<p class="err">${errText(e)}</p>`); return false; }
+    try { list = sortOpen(await api.listTemplates()); } catch (e) { mount(root, html`${adminHead('Workouts')}<p class="err">${errText(e)}</p>`); return false; }
     return true;
   };
 
