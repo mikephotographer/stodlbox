@@ -39,7 +39,7 @@ const VTIMEZONE = [
 
 export function eventDescription(e, link) {
   const parts = [];
-  if (e.workout) parts.push(e.workout);
+  if (e.workout) parts.push(e.workout_title ? `${e.workout_title}\n${e.workout}` : e.workout);
   else if (e.workout_mode === 'vote') parts.push('WOD wird abgestimmt.');
   if (e.note) parts.push(e.note);
   if (link) parts.push(link);

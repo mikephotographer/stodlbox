@@ -224,7 +224,7 @@ export function eventHero(e, { rules, meId, headingTag = 'h1', compact = false, 
     ${peopleList(e, meId)}
     ${openVote
       ? voteBlock(e, rules, { canVote })
-      : html`${wodBox(e.workout, { compact, timer: e.title, eventId: timerEvent(e) })}${equipBanner(e.workout, rules)}`}
+      : html`${wodBox(e.workout, { title: (e.workout && e.workout_title) || 'Workout', compact, timer: e.workout_title || e.title, eventId: timerEvent(e) })}${equipBanner(e.workout, rules)}`}
     ${e.note ? html`<p class="note">${e.note}</p>` : ''}
     ${eventActions(e)}
     </div>

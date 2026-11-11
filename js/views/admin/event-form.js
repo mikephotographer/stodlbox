@@ -65,6 +65,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     capacity: ev ? (ev.capacity ?? '') : (settings.default_capacity ?? ''),
     mode: ev && ev.workout_mode === 'vote' && !ev.vote_closed ? 'vote' : 'fixed',
     workout: ev ? ev.workout || '' : '',
+    workout_title: ev ? ev.workout_title || '' : '',
     options: ev && ev.options.length && !ev.vote_closed
       ? ev.options.map((o) => ({ id: o.id, label: o.label, workout: o.workout }))
       : [{ label: '', workout: '' }, { label: '', workout: '' }],
@@ -86,7 +87,8 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     if (fromTpl) {
       f.mode = 'fixed';
       f.workout = fromTpl.workout;
-      if (f.title.trim() !== fromTpl.title) { fromTpl.oldTitle = f.title.trim(); f.title = fromTpl.title.slice(0, 80); }
+      f.workout_title = fromTpl.title.slice(0, 80);
+      if (!f.title.trim()) f.title = fromTpl.title.slice(0, 80);
     }
     history.replaceState(null, '', location.pathname + location.search + '#' + route().path);
   }
@@ -138,7 +140,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
   const draw = () => {
     mount(root, html`${adminHead(ev ? 'Termin' : 'Neuer Termin', { back: fromPoll ? '#/admin/umfragen' : '#/admin' })}
       ${ev && ev.status === 'cancelled' ? html`<div class="banner"><p><strong>Abgesagt.</strong> Die Freunde sehen den Termin durchgestrichen.</p></div>` : ''}
-      ${fromTpl ? html`<div class="banner">${icons.check(20)}<p>Titel und Workout von „${fromTpl.title}“ übernommen${fromTpl.oldTitle ? ` (vorher: ${fromTpl.oldTitle})` : ''}. Kurz prüfen und speichern.</p></div>` : ''}
+      ${fromTpl ? html`<div class="banner">${icons.check(20)}<p>„${fromTpl.title}“ ist als Workout eingesetzt. Kurz prüfen und speichern.</p></div>` : ''}
       ${pollOpt ? html`<div class="banner">${icons.vote(20)}<p>Aus der Terminfindung „${pollOpt.pollTitle}“: ${short(pollOpt.starts_at)} · ${pollOpt.members.length} können.</p></div>` : ''}
       <form id="evf" novalidate>
         <div class="grid2">
@@ -162,6 +164,8 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         </div>
 
         ${f.mode === 'fixed' ? html`
+          <label class="field"><span class="label">Workout-Titel (optional)</span>
+            <input class="input" name="workout_title" maxlength="80" placeholder="z. B. Fran" value="${f.workout_title}"></label>
           <div class="field">
             <div class="label-row" style="margin-bottom:6px"><label class="label" for="workout">Workout-Text</label>
               <button type="button" class="link" data-action="pick-template" data-target="main">Aus Datenbank oder früher</button></div>
@@ -212,7 +216,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     f.as_template = el.as_template.checked;
     f.private = el.private ? el.private.checked : false;
     if (el.prefill) f.prefill = el.prefill.checked;
-    if (f.mode === 'fixed') f.workout = el.workout.value;
+    if (f.mode === 'fixed') { f.workout = el.workout.value; f.workout_title = el.workout_title.value; }
     else {
       f.options = f.options.map((o, i) => ({ ...o, label: el[`opt_label_${i}`].value, workout: el[`opt_workout_${i}`].value }));
       f.vote_date = el.vote_date.value; f.vote_time = el.vote_time.value;
@@ -295,6 +299,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
     collect();
     if (target === 'main') {
       f.workout = pick.workout;
+      f.workout_title = pick.kind === 'template' ? pick.title.slice(0, 80) : '';
       if (!f.title.trim()) f.title = pick.title;
     } else {
       const i = +target;
@@ -331,7 +336,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         await api.closeVote(ev.id);
         toast('Voting abgeschlossen');
         ev = await api.getEvent(ev.id, null);
-        f.mode = 'fixed'; f.workout = ev.workout || '';
+        f.mode = 'fixed'; f.workout = ev.workout || ''; f.workout_title = ev.workout_title || '';
         draw();
       } catch (err) {
         if (String(err.code || err.message).includes('TIE')) {
@@ -344,7 +349,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
             await api.closeVote(ev.id, pick);
             toast('Sieger übernommen');
             ev = await api.getEvent(ev.id, null);
-            f.mode = 'fixed'; f.workout = ev.workout || '';
+            f.mode = 'fixed'; f.workout = ev.workout || ''; f.workout_title = ev.workout_title || '';
             draw();
           } catch (err2) { toast(errText(err2), 'error'); }
         } else toast(errText(err), 'error');
@@ -371,6 +376,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
       capacity: f.capacity === '' ? null : +f.capacity,
       workout_mode: f.mode,
       workout: f.mode === 'fixed' ? f.workout.trim() : null,
+      workout_title: f.mode === 'fixed' ? f.workout_title.trim() : null,
       note: f.note.trim(),
       media_url: f.media_url.trim(),
       private: !pollOpt && f.private,
@@ -389,7 +395,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         else newId = await api.saveEvent(payload);
         if (f.as_template) {
           const tpls = f.mode === 'fixed'
-            ? (payload.workout ? [{ title: payload.title, workout: payload.workout }] : [])
+            ? (payload.workout ? [{ title: payload.workout_title || payload.title, workout: payload.workout }] : [])
             : payload.options.map((o) => ({ title: o.label, workout: o.workout }));
           // Gleiches Workout nicht doppelt ablegen
           const known = new Set((await api.listTemplates()).map((t) => t.workout.trim()));

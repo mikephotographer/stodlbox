@@ -734,6 +734,25 @@ begin
   raise notice 'OK 18: Code-Bremse und Upload-Grenze';
 end $$;
 
+-- 19: Workout-Titel
+do $$
+declare e uuid; o uuid; j jsonb;
+begin
+  perform pg_temp.as_admin();
+  e := admin_save_event(jsonb_build_object('title', 'Samstags-WOD', 'starts_at', now() + interval '5 days', 'workout_title', ' Fran ', 'workout', '21-15-9 Thruster, Pull-Ups'));
+  j := event_json(e, null);
+  assert j->>'title' = 'Samstags-WOD' and j->>'workout_title' = 'Fran', j::text;
+  perform admin_save_event(jsonb_build_object('id', e, 'title', 'Samstags-WOD', 'starts_at', now() + interval '5 days', 'workout_title', '', 'workout', 'x'));
+  assert event_json(e, null)->>'workout_title' is null, 'Leerer Titel = keiner';
+  -- Voting: Sieger-Titel wird übernommen
+  e := admin_save_event(jsonb_build_object('title', 'Voting', 'starts_at', now() + interval '6 days', 'workout_mode', 'vote',
+        'options', jsonb_build_array(jsonb_build_object('label', 'Grace', 'workout', '30 C&J'), jsonb_build_object('label', 'Isabel', 'workout', '30 Snatch'))));
+  select id into o from workout_options where event_id = e and label = 'Isabel';
+  perform close_vote_core(e, o);
+  assert event_json(e, null)->>'workout_title' = 'Isabel', 'Sieger-Titel';
+  raise notice 'OK 19: Workout-Titel';
+end $$;
+
 do $$ begin raise notice 'ALLE TESTS OK'; end $$;
 
 rollback;

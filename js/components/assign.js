@@ -28,7 +28,7 @@ export function adminHere() {
 /** Auswahl-Sheet: Termin wählen oder neuen anlegen; führt ins Termin-Formular. */
 export async function assignToEvent(w) {
   const pick = await sheet('Zu Termin hinzufügen', html`
-    <p class="hint" style="margin:0 0 4px">„${w.title}“ wird Titel und Workout des Termins. Du siehst den Termin danach noch und speicherst selbst.</p>
+    <p class="hint" style="margin:0 0 4px">„${w.title}“ kommt als Workout-Titel und Workout in den Termin. Du siehst den Termin danach noch und speicherst selbst.</p>
     <div id="as-list"><p class="muted">Lädt …</p></div>`, (dlg, close) => {
     const box = dlg.querySelector('#as-list');
     (async () => {

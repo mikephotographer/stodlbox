@@ -286,7 +286,7 @@ function closeVote(eventId, optionId) {
     if (best.length !== 1) throw err('TIE');
     win = best[0].o;
   }
-  Object.assign(e, { workout: win.workout, workout_mode: 'fixed', vote_closed: true });
+  Object.assign(e, { workout: win.workout, workout_title: e.workout_title || win.label, workout_mode: 'fixed', vote_closed: true });
   return win.id;
 }
 
@@ -353,6 +353,7 @@ function saveEvent(p) {
   const fields = {
     starts_at: p.starts_at, duration_min: +p.duration_min || db.settings.default_duration_min, title,
     workout: mode === 'fixed' ? (String(p.workout || '').trim() || null) : null, workout_mode: mode,
+    workout_title: mode === 'fixed' ? (String(p.workout_title || '').trim() || null) : null,
     capacity: cap, media_url: String(p.media_url || '').trim() || null, note: String(p.note || '').trim() || null,
     private: !!p.private,
   };
