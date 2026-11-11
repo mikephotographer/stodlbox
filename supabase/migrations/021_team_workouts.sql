@@ -118,7 +118,7 @@ select 'Three Amigos', 'Team of 3
 400 m run together
 50 bar-facing burpees
 6 rope climbs
-into
+then
 21 clean & jerks (52,5/37,5 kg · 42,5/30 · 20/15)
 21 clean & jerks (60/42,5 kg · 52,5/35 · 34/25)
 21 clean & jerks (70/47,5 kg · 60/42,5 · 42,5/30)
@@ -300,7 +300,7 @@ select 'Shuttle Sandwich', 'Team of 3
 Buy-in: 6:00 AMRAP (one full round before tagging off)
 5 thrusters (60/42,5 kg · 42,5/30 · 30/20)
 5 C2B pull-ups / pull-ups / ring rows
-Immediately into:
+Then:
 15 × 20 m shuttle sprints (tag off)
 3 rope climbs (one each) or 2 up/downs
 9 × 20 m shuttle sprints
@@ -328,7 +328,7 @@ Part 1
 25/15 cal bike (person B)
 12 tire flips
 25/15 cal bike (person C)
-Immediately into:
+Then:
 Part 2
 600 double unders as a team (or 1200 singles)
 One jumps, the other two accumulate sit-ups and burpees', 'Score: Burpees + Sit-ups, wenn die 600 DU geschafft sind oder das Time Cap erreicht ist. Quelle: Tangletown CrossFit (Team of 3), 16.06.2018.', array['CrossFit', 'For Time', 'Springseil', 'Bike', 'Team']::text[]
