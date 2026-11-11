@@ -2,13 +2,13 @@
 // - Eigene Dateien: network-first (immer aktuell, offline aus dem Cache)
 // - Schriften und supabase-js vom CDN: cache-first (fixe Versionen)
 // - Supabase-Daten: nicht anfassen (der Board-Stand liegt im localStorage der App)
-const CACHE = 'stodlbox-v26';
+const CACHE = 'stodlbox-v27';
 const SHELL = [
   './', './index.html', './config.js', './manifest.webmanifest', './manifest-admin.webmanifest', './admin/',
   './css/tokens.css', './css/app.css',
   './js/main.js', './js/api.js', './js/state.js', './js/router.js', './js/html.js', './js/ui.js', './js/icons.js',
   './js/format.js', './js/equipment.js', './js/seed-rules.js', './js/calendar.js', './js/share.js',
-  './js/components/event.js', './js/components/photos.js', './js/photos.js', './js/results.js', './js/components/results.js', './js/timer.js', './js/views/timer.js', './js/components/tabbar.js', './js/components/poll.js',
+  './js/components/event.js', './js/components/photos.js', './js/photos.js', './js/results.js', './js/classify.js', './js/components/results.js', './js/timer.js', './js/views/timer.js', './js/components/tabbar.js', './js/components/poll.js',
   './js/views/common.js', './js/views/onboarding.js', './js/views/board.js', './js/views/event.js', './js/views/archive.js', './js/views/workouts.js', './js/components/workouts.js', './js/views/poll.js',
   './js/views/admin/index.js', './js/views/admin/event-form.js', './js/views/admin/forms.js', './js/views/admin/manage.js',
   './assets/icons/icon-192.png', './assets/icons/apple-touch-icon.png', './assets/icons/favicon-48.png',

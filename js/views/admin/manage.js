@@ -8,7 +8,8 @@ import { matchEquipment, equipmentSentence } from '../../equipment.js';
 import { appLink, shareText, copyText } from '../../share.js';
 import { navigate } from '../../router.js';
 import { adminHead } from './index.js';
-import { parseTags, tagCounts, hasTag, matchesQuery, filterChips, workoutRow } from '../../components/workouts.js';
+import { parseTags, matchesQuery, workoutRow, categoryChips, filterBar, filterSheet, matchesFilter, emptyFilter } from '../../components/workouts.js';
+import { CATEGORIES, FORMATS, EQUIPMENT, EXTRAS, canonical, categoryOf, formatsOf, equipmentOf, extrasOf, orderTags, suggestTags } from '../../classify.js';
 
 /** Sheet mit Formular; resolve mit FormData-Objekt oder undefined */
 function formSheet(title, body, okLabel = 'Speichern', validate) {
@@ -35,18 +36,16 @@ export async function renderWorkouts(root) {
   mount(root, html`${adminHead('Workouts', { plus: 'new' })}<div class="skeleton" style="height:200px" aria-busy="true"></div>`);
   let list = [];
   let q = '';
-  let tag = '';
+  let filter = emptyFilter();
   const load = async () => {
     try { list = await api.listTemplates(); } catch (e) { mount(root, html`${adminHead('Workouts')}<p class="err">${errText(e)}</p>`); return false; }
-    if (tag && !list.some((w) => hasTag(w, tag))) tag = '';
     return true;
   };
 
   // Liste und Chips werden getrennt neu gezeichnet, damit das Suchfeld den Fokus behält.
   const drawList = () => {
-    const counts = tagCounts(list);
-    mount(root.querySelector('#wo-chips'), counts.length ? filterChips(counts, tag, { total: list.length }) : '');
-    const shown = list.filter((w) => hasTag(w, tag) && matchesQuery(w, q));
+    mount(root.querySelector('#wo-chips'), list.length ? html`${categoryChips(list, filter.cat)}${filterBar(filter)}` : '');
+    const shown = list.filter((w) => matchesFilter(w, filter) && matchesQuery(w, q));
     mount(root.querySelector('#wo-list'), !list.length
       ? html`<div class="empty-state"><p class="label">Noch keine Workouts</p><p>Leg eines über das Plus an oder hak beim Termin „In Workout-Datenbank speichern“ an.</p></div>`
       : shown.length
@@ -72,12 +71,19 @@ export async function renderWorkouts(root) {
   };
 
   root.onclick = async (e) => {
-    const chip = e.target.closest('[data-tag]');
-    if (chip && chip.closest('#wo-chips')) { tag = chip.dataset.tag; drawList(); return; }
+    const cat = e.target.closest('[data-cat]');
+    if (cat) { filter = { ...filter, cat: cat.dataset.cat }; drawList(); return; }
+    const rm = e.target.closest('[data-remove]');
+    if (rm) { filter = { ...filter, [rm.dataset.remove]: filter[rm.dataset.remove].filter((x) => x !== rm.dataset.value) }; drawList(); return; }
     const a = e.target.closest('[data-action]');
     if (!a) return;
+    if (a.dataset.action === 'filters') {
+      const next = await filterSheet(list, filter);
+      if (next) { filter = next; drawList(); }
+      return;
+    }
     const w = a.dataset.id ? list.find((x) => x.id === a.dataset.id) : null;
-    const res = await workoutSheet(w, tagCounts(list).map((c) => c.tag), tag);
+    const res = await workoutSheet(w, filter.cat);
     try {
       if (res === 'delete' && w) {
         if (await confirmSheet('Workout löschen', `„${w.title}“ aus der Datenbank löschen? Termine, die es schon verwenden, bleiben unverändert.`, 'Löschen', true)) {
@@ -94,43 +100,61 @@ export async function renderWorkouts(root) {
 }
 
 /** Bearbeiten/Anlegen. Resolve: Daten-Objekt, 'delete' oder undefined */
-function workoutSheet(w, known, presetTag) {
-  const initialTags = w ? (w.tags || []) : (presetTag ? [presetTag] : []);
-  const suggest = [...new Set([...known, ...['Girls', 'Hero', 'Benchmark', 'Hyrox', 'Partner', 'AMRAP', 'EMOM', 'For Time', 'Kraft']])];
-  const chipsFor = (cur) => {
-    const sel = new Set(cur.map((t) => t.toLowerCase()));
-    return html`${suggest.map((t) => html`<button type="button" class="chip" data-add="${t}" aria-pressed="${String(sel.has(t.toLowerCase()))}">${t}</button>`)}`;
+function workoutSheet(w, presetCat) {
+  const t0 = w ? (w.tags || []).map(canonical) : [];
+  const sel = {
+    category: categoryOf(t0) || presetCat || 'Eigene',
+    formats: formatsOf(t0),
+    equipment: equipmentOf(t0),
+    extras: extrasOf(t0),
   };
+  let touched = !!w; // bei neuen Workouts Art und Geräte aus dem Text vorschlagen, bis von Hand getippt wird
+  const chips = (k, values) => html`${values.map((v) => html`<button type="button" class="chip" data-k="${k}" data-v="${v}" aria-pressed="${String(k === 'category' ? sel.category === v : sel[k].includes(v))}">${v}</button>`)}`;
+  const groups = () => html`
+    <p class="label" style="margin:18px 0 0">Gruppe</p><div class="chips wrap" data-group="category">${chips('category', CATEGORIES)}</div>
+    <div class="label-row" style="margin:18px 0 0"><span class="label">Art</span>
+      <button type="button" class="link" data-auto>${icons.refresh(14)} Aus dem Text erkennen</button></div>
+    <div class="chips wrap" data-group="formats">${chips('formats', FORMATS)}</div>
+    <p class="label" style="margin:18px 0 0">Geräte</p><div class="chips wrap" data-group="equipment">${chips('equipment', EQUIPMENT)}</div>
+    <p class="label" style="margin:18px 0 0">Merkmale</p><div class="chips wrap" data-group="extras">${chips('extras', [...new Set([...EXTRAS, ...sel.extras])])}</div>`;
   return sheet(w ? 'Workout bearbeiten' : 'Neues Workout', html`<form novalidate>
     <label class="field" style="margin-top:0"><span class="label">Name</span><input class="input" name="title" maxlength="80" placeholder="z. B. Fran" value="${w ? w.title : ''}" required></label>
     <label class="field"><span class="label">Workout</span><textarea class="textarea" name="workout" rows="8" placeholder="For Time, 21-15-9:&#10;Thruster (43/30 kg)&#10;Pull-Ups" required>${w ? w.workout : ''}</textarea></label>
-    <label class="field"><span class="label">Gruppen / Tags</span><input class="input" name="tags" autocomplete="off" placeholder="mit Komma trennen, z. B. Hero, For Time" value="${initialTags.join(', ')}"></label>
-    <div class="chips wrap" data-suggest>${chipsFor(initialTags)}</div>
+    <div data-groups>${groups()}</div>
+    <label class="field"><span class="label">Weitere Tags (optional)</span><input class="input" name="more" autocomplete="off" placeholder="mit Komma trennen, z. B. Sommer" value=""></label>
     <label class="field"><span class="label">Notiz (optional)</span><textarea class="textarea" name="notes" rows="2" style="min-height:72px;font-family:var(--font-body);font-size:16px" placeholder="Skalierung, Herkunft, Tipps">${w && w.notes ? w.notes : ''}</textarea></label>
     <p class="err" role="alert"></p>
     <div class="form-actions"><button class="btn" type="submit">Speichern</button>
       ${w ? html`<button class="link danger" type="button" data-del>Workout löschen</button>` : ''}
       <button class="link" type="button" data-close>abbrechen</button></div></form>`, (dlg, close) => {
     const form = dlg.querySelector('form');
-    const tagsIn = form.elements.tags;
-    const box = dlg.querySelector('[data-suggest]');
-    const refresh = () => mount(box, chipsFor(parseTags(tagsIn.value)));
-    tagsIn.addEventListener('input', refresh);
+    const box = dlg.querySelector('[data-groups]');
+    const redraw = () => mount(box, groups());
+    const auto = () => {
+      const s2 = suggestTags({ title: form.elements.title.value, workout: form.elements.workout.value, tags: [sel.category, ...sel.extras] });
+      sel.formats = formatsOf(s2);
+      sel.equipment = equipmentOf(s2);
+      sel.extras = extrasOf(s2);
+      redraw();
+    };
+    form.elements.workout.addEventListener('input', () => { if (!touched) auto(); });
     box.addEventListener('click', (ev) => {
-      const b = ev.target.closest('[data-add]');
+      if (ev.target.closest('[data-auto]')) { auto(); return; }
+      const b = ev.target.closest('[data-k]');
       if (!b) return;
-      const cur = parseTags(tagsIn.value);
-      const t = b.dataset.add;
-      const next = cur.some((x) => x.toLowerCase() === t.toLowerCase()) ? cur.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...cur, t];
-      tagsIn.value = next.join(', ');
-      refresh();
+      const { k, v } = b.dataset;
+      if (k === 'category') sel.category = v;
+      else { touched = true; sel[k] = sel[k].includes(v) ? sel[k].filter((x) => x !== v) : [...sel[k], v]; }
+      redraw();
     });
     form.addEventListener('submit', (ev) => {
       ev.preventDefault();
       const title = form.elements.title.value.trim();
       const workout = form.elements.workout.value.trim();
       if (!title || !workout) { form.querySelector('.err').textContent = 'Name und Workout ausfüllen.'; return; }
-      close({ title, workout, tags: parseTags(tagsIn.value), notes: form.elements.notes.value.trim() || null });
+      const extras = [...sel.extras, ...parseTags(form.elements.more.value).map(canonical)];
+      const tags = orderTags({ category: sel.category, formats: sel.formats, equipment: sel.equipment, extras });
+      close({ title, workout, tags, notes: form.elements.notes.value.trim() || null });
     });
     dlg.querySelector('[data-del]')?.addEventListener('click', () => close('delete'));
     if (!w) setTimeout(() => form.elements.title.focus(), 50);

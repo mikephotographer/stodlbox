@@ -9,7 +9,7 @@ import { counts } from '../../components/event.js';
 import { appLink, shareText, voteShareText, eventShareText } from '../../share.js';
 import { navigate } from '../../router.js';
 import { adminHead } from './index.js';
-import { filterChips, tagCounts, hasTag, matchesQuery } from '../../components/workouts.js';
+import { filterChips, categoryCounts, hasTag, matchesQuery } from '../../components/workouts.js';
 
 const STATUS_LABEL = { yes: 'dabei', maybe: 'vielleicht', no: 'kann nicht', waitlist: 'warteliste' };
 
@@ -248,7 +248,7 @@ export async function renderEventForm(root, id, { fromPoll, optionId } = {}) {
         try {
           if (!all) {
             all = (await api.listTemplates()).map((t) => ({ kind: 'template', id: t.id, title: t.title, workout: t.workout, tags: t.tags || [], date: null }));
-            counts = tagCounts(all);
+            counts = categoryCounts(all);
             drawChips();
           }
           const tpl = all.filter((w) => hasTag(w, tag) && matchesQuery(w, q.value));

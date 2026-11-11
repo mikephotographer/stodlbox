@@ -95,12 +95,12 @@ function seed() {
     members, series, events, options: opts, votes, rsvps, polls: [poll], pollOptions: pollOpts, answers,
     rules: SEED_RULES.map((r, i) => ({ id: uid(), ...r, active: true, sort: (i + 1) * 10 })),
     templates: [
-      { id: uid(), title: 'Cindy', workout: 'AMRAP 20 Min.:\n5 Pull-Ups\n10 Push-Ups\n15 Air Squats', tags: ['Girls', 'Benchmark', 'AMRAP', 'Bodyweight'], notes: null, created_at: nowISO() },
-      { id: uid(), title: 'Fran', workout: 'For Time, 21-15-9:\nThruster (43/30 kg)\nPull-Ups', tags: ['Girls', 'Benchmark', 'For Time'], notes: null, created_at: nowISO() },
-      { id: uid(), title: 'Helen', workout: '3 Runden For Time:\n400 m Run\n21 Kettlebell Swings (24/16 kg)\n12 Pull-Ups', tags: ['Girls', 'Benchmark', 'For Time'], notes: null, created_at: nowISO() },
-      { id: uid(), title: 'Murph', workout: 'For Time:\n1,6 km Run\n100 Pull-Ups\n200 Push-Ups\n300 Air Squats\n1,6 km Run\nmit Weste (9/6 kg)', tags: ['Hero', 'Benchmark', 'For Time'], notes: 'Pull-Ups, Push-Ups und Squats dürfen aufgeteilt werden.', created_at: nowISO() },
-      { id: uid(), title: 'HYROX-Sim Light', workout: '4 Runden:\n1 km Run\n20 Wall Balls\n15 Toes-to-Bar\n50 m Sled Push', tags: ['Hyrox'], notes: null, created_at: nowISO() },
-      { id: uid(), title: 'Partner-Chipper', workout: 'Zu zweit For Time:\n100 Wall Balls\n80 Kettlebell Swings\n60 Burpees\n40 Box Jumps\n20 Pull-Ups', tags: ['Partner', 'For Time'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Cindy', workout: 'AMRAP 20 Min.:\n5 Pull-Ups\n10 Push-Ups\n15 Air Squats', tags: ['Girls', 'AMRAP', 'Klimmzugstange', 'Benchmark'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Fran', workout: 'For Time, 21-15-9:\nThruster (43/30 kg)\nPull-Ups', tags: ['Girls', 'For Time', 'Langhantel', 'Klimmzugstange', 'Benchmark'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Helen', workout: '3 Runden For Time:\n400 m Run\n21 Kettlebell Swings (24/16 kg)\n12 Pull-Ups', tags: ['Girls', 'For Time', 'Kettlebell', 'Klimmzugstange', 'Laufen', 'Benchmark'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Murph', workout: 'For Time:\n1,6 km Run\n100 Pull-Ups\n200 Push-Ups\n300 Air Squats\n1,6 km Run\nmit Weste (9/6 kg)', tags: ['Hero', 'For Time', 'Chipper', 'Klimmzugstange', 'Gewichtsweste', 'Laufen', 'Benchmark'], notes: 'Pull-Ups, Push-Ups und Squats dürfen aufgeteilt werden.', created_at: nowISO() },
+      { id: uid(), title: 'HYROX-Sim Light', workout: '4 Runden:\n1 km Run\n20 Wall Balls\n15 Toes-to-Bar\n50 m Sled Push', tags: ['Hyrox', 'For Time', 'Klimmzugstange', 'Wall Ball', 'Schlitten', 'Laufen'], notes: null, created_at: nowISO() },
+      { id: uid(), title: 'Partner-Chipper', workout: 'Zu zweit For Time:\n100 Wall Balls\n80 Kettlebell Swings\n60 Burpees\n40 Box Jumps\n20 Pull-Ups', tags: ['CrossFit', 'For Time', 'Chipper', 'Kettlebell', 'Klimmzugstange', 'Box', 'Wall Ball', 'Partner'], notes: null, created_at: nowISO() },
     ],
     session: null,
   };

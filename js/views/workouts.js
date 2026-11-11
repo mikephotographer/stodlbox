@@ -4,7 +4,7 @@ import { icons } from '../icons.js';
 import { api } from '../api.js';
 import { errText } from '../ui.js';
 import { route, navigate } from '../router.js';
-import { tagCounts, hasTag, matchesQuery, filterChips, preview } from '../components/workouts.js';
+import { matchesQuery, preview, categoryChips, filterBar, filterSheet, matchesFilter, filterFromTag, emptyFilter, metaLine, tagLinks } from '../components/workouts.js';
 import { topbar, handleAuthError } from './common.js';
 import { timerLink } from '../components/event.js';
 import { state } from '../state.js';
@@ -15,7 +15,7 @@ import { wdShort, dm } from '../format.js';
 let list = null;
 let loadedAt = 0;
 let q = '';
-let tag = '';
+let filter = emptyFilter();
 let scrollY = 0;
 
 async function ensureList() {
@@ -34,22 +34,19 @@ function failed(root, e, back = false) {
 
 const row = (w) => html`<li><a class="pick wo" href="#/workouts/${w.id}">
   <span class="t">${w.title}</span>
-  ${w.tags && w.tags.length ? html`<span class="tags">${w.tags.join(' · ')}</span>` : ''}
+  ${metaLine(w)}
   <span class="w">${preview(w.workout)}</span></a></li>`;
 
 export async function renderWorkouts(root) {
   document.title = 'STODLBOX · Workouts';
   const g = route().query.get('g');
-  if (g != null) { tag = g; q = ''; scrollY = 0; }
+  if (g != null) { filter = filterFromTag(g); q = ''; scrollY = 0; }
 
   if (!list) mount(root, html`${topbar()}<div class="skeleton" style="height:200px;margin-top:24px" aria-busy="true"></div>`);
   try { await ensureList(); } catch (e) { return failed(root, e); }
-  if (tag && !list.some((w) => hasTag(w, tag))) tag = '';
-
-  const shown = () => list.filter((w) => hasTag(w, tag) && matchesQuery(w, q));
+  const shown = () => list.filter((w) => matchesFilter(w, filter) && matchesQuery(w, q));
   const drawList = () => {
-    const counts = tagCounts(list);
-    mount(root.querySelector('#wo-chips'), counts.length ? filterChips(counts, tag, { total: list.length }) : '');
+    mount(root.querySelector('#wo-chips'), list.length ? html`${categoryChips(list, filter.cat)}${filterBar(filter)}` : '');
     const s = shown();
     mount(root.querySelector('#wo-list'), !list.length
       ? html`<div class="empty-state"><p class="label">Noch keine Workouts</p><p>Mike hat noch nichts in die Datenbank gelegt.</p></div>`
@@ -80,9 +77,16 @@ export async function renderWorkouts(root) {
     q = e.target.value;
     drawList();
   };
-  root.onclick = (e) => {
-    const chip = e.target.closest('[data-tag]');
-    if (chip && chip.closest('#wo-chips')) { tag = chip.dataset.tag; drawList(); return; }
+  root.onclick = async (e) => {
+    const cat = e.target.closest('[data-cat]');
+    if (cat) { filter = { ...filter, cat: cat.dataset.cat }; drawList(); return; }
+    const rm = e.target.closest('[data-remove]');
+    if (rm) { filter = { ...filter, [rm.dataset.remove]: filter[rm.dataset.remove].filter((x) => x !== rm.dataset.value) }; drawList(); return; }
+    if (e.target.closest('[data-action="filters"]')) {
+      const next = await filterSheet(list, filter);
+      if (next) { filter = next; drawList(); }
+      return;
+    }
     if (e.target.closest('[data-action="random"]')) {
       const s = shown();
       scrollY = window.scrollY;
@@ -107,7 +111,7 @@ export async function renderWorkout(root, id) {
     <a class="back" href="#/workouts">${icons.back()} Workouts</a>
     <main id="main">
       <h1 class="page-title" style="margin:8px 0 0">${w.title}</h1>
-      ${w.tags && w.tags.length ? html`<div class="chips wrap">${w.tags.map((t) => html`<a class="chip" href="#/workouts?g=${encodeURIComponent(t)}">${t}</a>`)}</div>` : ''}
+      ${w.tags && w.tags.length ? tagLinks(w.tags) : ''}
       <div class="wod"><div class="wod-head"><span class="label">Workout</span>${timerLink(w.workout, w.title)}</div><div class="wod-body">${w.workout}</div></div>
       ${w.notes ? html`<p class="wo-notes">${w.notes}</p>` : ''}
       <section class="section" id="wo-results" hidden></section>

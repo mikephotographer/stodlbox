@@ -505,3 +505,12 @@ dialog.lightbox .lb-top .icon-btn{color:#fff;border:0;background:none}
 /* Geheime Termine */
 .private-tag{display:inline-flex;align-items:center;gap:6px;margin:10px 0 0;font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--accent-ink)}
 .private-tag svg{flex:none}
+
+/* Workout-Datenbank: Gruppen, Filter, Tags */
+.wo-filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:8px 0 0}
+.chip.filter-btn[aria-pressed="false"]{border-style:dashed}
+.chip.on{background:var(--surface-2);color:var(--text);border-color:var(--surface-2)}
+.pick.wo .gear{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.tag-groups{align-items:center}
+.tag-sep{width:1px;height:20px;background:var(--line);margin:0 2px}
+.wo-filter-sheet .chips.wrap{padding-top:6px}

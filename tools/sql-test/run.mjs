@@ -22,7 +22,7 @@ await db.exec(`
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
   alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 `);
-for (const f of ['migrations/001_schema.sql','migrations/002_rpc.sql','migrations/004_seed.sql','migrations/005_workout_db.sql','migrations/006_workouts_for_friends.sql','migrations/007_photos.sql','migrations/008_admin_auto_join.sql','migrations/009_videos.sql','migrations/010_photo_originals.sql','migrations/011_results_calendar.sql','migrations/012_calendar_any_accept.sql','migrations/013_private_events.sql','migrations/014_hardening.sql']) {
+for (const f of ['migrations/001_schema.sql','migrations/002_rpc.sql','migrations/004_seed.sql','migrations/005_workout_db.sql','migrations/006_workouts_for_friends.sql','migrations/007_photos.sql','migrations/008_admin_auto_join.sql','migrations/009_videos.sql','migrations/010_photo_originals.sql','migrations/011_results_calendar.sql','migrations/012_calendar_any_accept.sql','migrations/013_private_events.sql','migrations/014_hardening.sql','migrations/015_workout_tags.sql']) {
   try { await db.exec(readFileSync(`${dir}/${f}`, 'utf8')); console.log('ok', f); }
   catch (e) { console.error('FAIL', f, e.message); process.exit(1); }
 }
