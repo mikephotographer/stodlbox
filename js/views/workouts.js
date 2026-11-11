@@ -4,7 +4,7 @@ import { icons } from '../icons.js';
 import { api } from '../api.js';
 import { errText } from '../ui.js';
 import { route, navigate } from '../router.js';
-import { matchesQuery, preview, categoryChips, filterBar, filterSheet, matchesFilter, filterFromTag, emptyFilter, metaLine, tagLinks } from '../components/workouts.js';
+import { matchesQuery, preview, categoryChips, filterBar, filterSheet, matchesFilter, filterFromTag, emptyFilter, metaLine, tagLinks, benchOn, toggleBench } from '../components/workouts.js';
 import { topbar, handleAuthError } from './common.js';
 import { timerLink } from '../components/event.js';
 import { state } from '../state.js';
@@ -46,7 +46,7 @@ export async function renderWorkouts(root) {
   try { await ensureList(); } catch (e) { return failed(root, e); }
   const shown = () => list.filter((w) => matchesFilter(w, filter) && matchesQuery(w, q));
   const drawList = () => {
-    mount(root.querySelector('#wo-chips'), list.length ? html`${categoryChips(list, filter.cat)}${filterBar(filter)}` : '');
+    mount(root.querySelector('#wo-chips'), list.length ? html`${categoryChips(list, filter.cat, benchOn(filter))}${filterBar(filter)}` : '');
     const s = shown();
     mount(root.querySelector('#wo-list'), !list.length
       ? html`<div class="empty-state"><p class="label">Noch keine Workouts</p><p>Mike hat noch nichts in die Datenbank gelegt.</p></div>`
@@ -80,6 +80,7 @@ export async function renderWorkouts(root) {
   root.onclick = async (e) => {
     const cat = e.target.closest('[data-cat]');
     if (cat) { filter = { ...filter, cat: cat.dataset.cat }; drawList(); return; }
+    if (e.target.closest('[data-bench]')) { filter = toggleBench(filter); drawList(); return; }
     const rm = e.target.closest('[data-remove]');
     if (rm) { filter = { ...filter, [rm.dataset.remove]: filter[rm.dataset.remove].filter((x) => x !== rm.dataset.value) }; drawList(); return; }
     if (e.target.closest('[data-action="filters"]')) {

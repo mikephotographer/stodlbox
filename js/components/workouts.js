@@ -38,7 +38,10 @@ export function categoryCounts(list) {
 }
 
 export const emptyFilter = () => ({ cat: '', formats: [], equipment: [], extras: [] });
-export const filterCount = (f) => f.formats.length + f.equipment.length + f.extras.length;
+export const filterCount = (f) => f.formats.length + f.equipment.length + f.extras.filter((v) => v !== 'Benchmark').length;
+export const benchOn = (f) => f.extras.includes('Benchmark');
+/** Benchmark-Chip: zusätzlich zur Gruppe ein- und ausschalten */
+export const toggleBench = (f) => ({ ...f, extras: benchOn(f) ? f.extras.filter((v) => v !== 'Benchmark') : [...f.extras, 'Benchmark'] });
 
 /** Art: eine davon reicht. Geräte und Merkmale: alle gewählten müssen vorkommen. */
 export function matchesFilter(w, f) {
@@ -63,10 +66,12 @@ export function filterFromTag(t) {
 }
 
 /** Zeile unter der Suche: Gruppen-Chips */
-export function categoryChips(list, active) {
+export function categoryChips(list, active, bench = false) {
   const counts = categoryCounts(list);
+  const nb = list.filter((w) => (w.tags || []).map(canonical).includes('Benchmark')).length;
   return html`<div class="chips" role="group" aria-label="Nach Gruppe filtern">
     <button type="button" class="chip" data-cat="" aria-pressed="${String(!active)}">Alle <span class="n">${list.length}</span></button>
+    ${nb ? html`<button type="button" class="chip" data-bench aria-pressed="${String(bench)}">Benchmark <span class="n">${nb}</span></button>` : ''}
     ${counts.map((c) => html`<button type="button" class="chip" data-cat="${c.tag}" aria-pressed="${String(active === c.tag)}">${c.tag} <span class="n">${c.n}</span></button>`)}
   </div>`;
 }
@@ -74,7 +79,7 @@ export function categoryChips(list, active) {
 /** „Filter“-Knopf und die gewählten Filter zum Wegtippen */
 export function filterBar(f) {
   const n = filterCount(f);
-  const all = [...f.formats.map((v) => ['formats', v]), ...f.equipment.map((v) => ['equipment', v]), ...f.extras.map((v) => ['extras', v])];
+  const all = [...f.formats.map((v) => ['formats', v]), ...f.equipment.map((v) => ['equipment', v]), ...f.extras.filter((v) => v !== 'Benchmark').map((v) => ['extras', v])];
   return html`<div class="wo-filterbar">
     <button type="button" class="chip filter-btn" data-action="filters" aria-pressed="${String(n > 0)}">Art &amp; Geräte${n ? html` <span class="n">${n}</span>` : ''}</button>
     ${all.map(([k, v]) => html`<button type="button" class="chip on" data-remove="${k}" data-value="${v}" aria-label="Filter ${v} entfernen">${v} ×</button>`)}
