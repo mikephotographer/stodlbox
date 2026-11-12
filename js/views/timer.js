@@ -11,13 +11,10 @@ import { topbar } from './common.js';
 
 let audio = null;
 
-// Musik (Spotify & Co.): iOS kennt für Web-Apps nur zwei Wege.
-// „ambient“ = Musik läuft weiter, Piepser kommt darüber, aber der Lautlos-Schalter macht ihn stumm.
-// „playback“ = Piepser auch bei Lautlos, dafür hält iOS die Musik an.
-const mixMusic = () => state.timer.mix !== false;
-
+// Musik (Spotify & Co.) läuft immer weiter, der Piepser kommt darüber („ambient“).
+// Folge: Der Lautlos-Schalter am iPhone macht den Piepser stumm. Anders geht es in einer Web-App nicht.
 function unlockAudio() {
-  try { if (navigator.audioSession) navigator.audioSession.type = mixMusic() ? 'ambient' : 'playback'; } catch { /* ältere Browser */ }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'ambient'; } catch { /* ältere Browser */ }
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!audio && AC) audio = new AC();
@@ -103,7 +100,7 @@ const fieldValue = (c, key) => {
   return clock(c[key]);
 };
 
-function setupView(cfg, source, half, head = topbar, mix = true) {
+function setupView(cfg, source, half, head = topbar) {
   const m = cfg.mode;
   const total = mainDuration(cfg);
   const own = head !== topbar;
@@ -128,10 +125,8 @@ function setupView(cfg, source, half, head = topbar, mix = true) {
       ${m === 'emom' || m === 'tabata' ? html`<p class="count" style="margin-top:12px">Gesamt ${clock(total)}</p>` : ''}
       ${m === 'fortime' && !cfg.cap ? '' : html`<label class="toggle-row"><span><strong>Halbzeit-Ton</strong><span class="muted">Kurz-kurz in der Mitte jedes Intervalls</span></span>
         <input type="checkbox" class="switch" id="t-half" ${half ? 'checked' : ''}></label>`}
-      <label class="toggle-row"><span><strong>Musik weiterlaufen lassen</strong><span class="muted">${mix ? 'Spotify & Co. spielen weiter. Am iPhone Lautlos-Schalter aus, sonst kein Piepser.' : 'Piepser auch bei Lautlos, Musik wird aber angehalten.'}</span></span>
-        <input type="checkbox" class="switch" id="t-mix" ${mix ? 'checked' : ''}></label>
       <button class="btn" data-action="start" style="margin-top:24px">${icons.timer(22)} Start</button>
-      <p class="hint" style="margin-top:12px">${PREP} Sekunden Vorlauf. Der Bildschirm bleibt an, Töne: 3-2-1 vor jedem Wechsel, langer Ton bei Start, zweimal tief bei Pause.</p>
+      <p class="hint" style="margin-top:12px">${PREP} Sekunden Vorlauf. Der Bildschirm bleibt an, Töne: 3-2-1 vor jedem Wechsel, langer Ton bei Start, zweimal tief bei Pause. Musik läuft weiter; am iPhone den Lautlos-Schalter ausschalten, sonst bleibt der Piepser stumm.</p>
     </main>`;
 }
 
@@ -232,7 +227,7 @@ export async function renderTimer(root, { head = topbar } = {}) {
     state.timer = p;
   };
 
-  const drawSetup = () => mount(root, setupView(cfg, source, state.timer.half !== false, head, state.timer.mix !== false));
+  const drawSetup = () => mount(root, setupView(cfg, source, state.timer.half !== false, head));
 
   const stopLoop = () => { if (timer) clearInterval(timer); timer = null; keepAwake(false); };
 
@@ -347,10 +342,6 @@ export async function renderTimer(root, { head = topbar } = {}) {
     if (ev.target.id === 't-half') {
       state.timer = { ...state.timer, half: ev.target.checked };
       if (ev.target.checked) { unlockAudio(); sounds.half(); }
-    }
-    if (ev.target.id === 't-mix') {
-      state.timer = { ...state.timer, mix: ev.target.checked };
-      drawSetup();
     }
   };
 
