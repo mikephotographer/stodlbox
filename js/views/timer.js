@@ -11,13 +11,24 @@ import { topbar } from './common.js';
 
 let audio = null;
 
+// Musik (Spotify & Co.) soll weiterlaufen und nur beim Piepsen leiser werden.
+// „transient“ = kurze Töne, andere Wiedergabe wird dabei nur gedämpft statt gestoppt.
+// Zwischen den Tönen wird der Ton-Kanal schlafen gelegt, damit die Musik wieder voll spielt.
+let idle = null;
+function awake(sec) {
+  if (!audio) return;
+  clearTimeout(idle);
+  try { if (audio.state === 'suspended') audio.resume(); } catch { /* egal */ }
+  idle = setTimeout(() => { try { audio.suspend(); } catch { /* egal */ } }, (sec + 0.5) * 1000);
+}
+
 function unlockAudio() {
-  try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* ältere Browser */ }
+  try { if (navigator.audioSession) navigator.audioSession.type = 'transient'; } catch { /* ältere Browser */ }
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!audio && AC) audio = new AC();
     if (audio && audio.state === 'suspended') audio.resume();
-    if (audio) beep(1, 0.01, 0.0001); // iOS gibt den Ton erst nach einem Abspielen im Tipp frei
+    if (audio) { beep(1, 0.01, 0.0001); awake(0.05); } // iOS gibt den Ton erst nach einem Abspielen im Tipp frei
   } catch { audio = null; }
 }
 
@@ -63,11 +74,11 @@ const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catc
 
 const HI = 1000; // Grundton wie bei klassischen Gym-Uhren
 const sounds = {
-  tick: () => { beep(HI, 0.25); vibrate(80); }, // 3-2-1
-  go: () => { beep(HI, 1.0); vibrate(400); }, // langer Ton: los
-  rest: () => { beep(650, 0.35); beep(650, 0.35, 0.9, 0.45); vibrate([150, 100, 150]); }, // zweimal tief: Pause
-  half: () => { beep(HI, 0.12); beep(HI, 0.12, 0.9, 0.2); vibrate([60, 60, 60]); }, // kurz-kurz: Halbzeit
-  done: () => { beep(HI, 0.3); beep(HI, 0.3, 0.9, 0.45); beep(HI, 1.6, 0.9, 0.9); vibrate([300, 100, 300, 100, 800]); },
+  tick: () => { awake(0.25); beep(HI, 0.25); vibrate(80); }, // 3-2-1
+  go: () => { awake(1.0); beep(HI, 1.0); vibrate(400); }, // langer Ton: los
+  rest: () => { awake(0.8); beep(650, 0.35); beep(650, 0.35, 0.9, 0.45); vibrate([150, 100, 150]); }, // zweimal tief: Pause
+  half: () => { awake(0.32); beep(HI, 0.12); beep(HI, 0.12, 0.9, 0.2); vibrate([60, 60, 60]); }, // kurz-kurz: Halbzeit
+  done: () => { awake(2.5); beep(HI, 0.3); beep(HI, 0.3, 0.9, 0.45); beep(HI, 1.6, 0.9, 0.9); vibrate([300, 100, 300, 100, 800]); },
 };
 
 let wake = null;
