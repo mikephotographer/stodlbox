@@ -11,24 +11,18 @@ import { topbar } from './common.js';
 
 let audio = null;
 
-// Musik (Spotify & Co.) soll weiterlaufen und nur beim Piepsen leiser werden.
-// „transient“ = kurze Töne, andere Wiedergabe wird dabei nur gedämpft statt gestoppt.
-// Zwischen den Tönen wird der Ton-Kanal schlafen gelegt, damit die Musik wieder voll spielt.
-let idle = null;
-function awake(sec) {
-  if (!audio) return;
-  clearTimeout(idle);
-  try { if (audio.state === 'suspended') audio.resume(); } catch { /* egal */ }
-  idle = setTimeout(() => { try { audio.suspend(); } catch { /* egal */ } }, (sec + 0.5) * 1000);
-}
+// Musik (Spotify & Co.): iOS kennt für Web-Apps nur zwei Wege.
+// „ambient“ = Musik läuft weiter, Piepser kommt darüber, aber der Lautlos-Schalter macht ihn stumm.
+// „playback“ = Piepser auch bei Lautlos, dafür hält iOS die Musik an.
+const mixMusic = () => state.timer.mix !== false;
 
 function unlockAudio() {
-  try { if (navigator.audioSession) navigator.audioSession.type = 'transient'; } catch { /* ältere Browser */ }
+  try { if (navigator.audioSession) navigator.audioSession.type = mixMusic() ? 'ambient' : 'playback'; } catch { /* ältere Browser */ }
   try {
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!audio && AC) audio = new AC();
-    if (audio && audio.state === 'suspended') audio.resume();
-    if (audio) { beep(1, 0.01, 0.0001); awake(0.05); } // iOS gibt den Ton erst nach einem Abspielen im Tipp frei
+    if (audio && audio.state !== 'running') audio.resume();
+    if (audio) beep(1, 0.01, 0.0001); // iOS gibt den Ton erst nach einem Abspielen im Tipp frei
   } catch { audio = null; }
 }
 
@@ -74,11 +68,11 @@ const vibrate = (p) => { try { navigator.vibrate && navigator.vibrate(p); } catc
 
 const HI = 1000; // Grundton wie bei klassischen Gym-Uhren
 const sounds = {
-  tick: () => { awake(0.25); beep(HI, 0.25); vibrate(80); }, // 3-2-1
-  go: () => { awake(1.0); beep(HI, 1.0); vibrate(400); }, // langer Ton: los
-  rest: () => { awake(0.8); beep(650, 0.35); beep(650, 0.35, 0.9, 0.45); vibrate([150, 100, 150]); }, // zweimal tief: Pause
-  half: () => { awake(0.32); beep(HI, 0.12); beep(HI, 0.12, 0.9, 0.2); vibrate([60, 60, 60]); }, // kurz-kurz: Halbzeit
-  done: () => { awake(2.5); beep(HI, 0.3); beep(HI, 0.3, 0.9, 0.45); beep(HI, 1.6, 0.9, 0.9); vibrate([300, 100, 300, 100, 800]); },
+  tick: () => { beep(HI, 0.25); vibrate(80); }, // 3-2-1
+  go: () => { beep(HI, 1.0); vibrate(400); }, // langer Ton: los
+  rest: () => { beep(650, 0.35); beep(650, 0.35, 0.9, 0.45); vibrate([150, 100, 150]); }, // zweimal tief: Pause
+  half: () => { beep(HI, 0.12); beep(HI, 0.12, 0.9, 0.2); vibrate([60, 60, 60]); }, // kurz-kurz: Halbzeit
+  done: () => { beep(HI, 0.3); beep(HI, 0.3, 0.9, 0.45); beep(HI, 1.6, 0.9, 0.9); vibrate([300, 100, 300, 100, 800]); },
 };
 
 let wake = null;
@@ -109,7 +103,7 @@ const fieldValue = (c, key) => {
   return clock(c[key]);
 };
 
-function setupView(cfg, source, half, head = topbar) {
+function setupView(cfg, source, half, head = topbar, mix = true) {
   const m = cfg.mode;
   const total = mainDuration(cfg);
   const own = head !== topbar;
@@ -134,8 +128,10 @@ function setupView(cfg, source, half, head = topbar) {
       ${m === 'emom' || m === 'tabata' ? html`<p class="count" style="margin-top:12px">Gesamt ${clock(total)}</p>` : ''}
       ${m === 'fortime' && !cfg.cap ? '' : html`<label class="toggle-row"><span><strong>Halbzeit-Ton</strong><span class="muted">Kurz-kurz in der Mitte jedes Intervalls</span></span>
         <input type="checkbox" class="switch" id="t-half" ${half ? 'checked' : ''}></label>`}
+      <label class="toggle-row"><span><strong>Musik weiterlaufen lassen</strong><span class="muted">${mix ? 'Spotify & Co. spielen weiter. Am iPhone Lautlos-Schalter aus, sonst kein Piepser.' : 'Piepser auch bei Lautlos, Musik wird aber angehalten.'}</span></span>
+        <input type="checkbox" class="switch" id="t-mix" ${mix ? 'checked' : ''}></label>
       <button class="btn" data-action="start" style="margin-top:24px">${icons.timer(22)} Start</button>
-      <p class="hint" style="margin-top:12px">${PREP} Sekunden Vorlauf. Der Bildschirm bleibt an, Töne: 3-2-1 vor jedem Wechsel, langer Ton bei Start, zweimal tief bei Pause. Am iPhone den Lautlos-Schalter beachten.</p>
+      <p class="hint" style="margin-top:12px">${PREP} Sekunden Vorlauf. Der Bildschirm bleibt an, Töne: 3-2-1 vor jedem Wechsel, langer Ton bei Start, zweimal tief bei Pause.</p>
     </main>`;
 }
 
@@ -236,7 +232,7 @@ export async function renderTimer(root, { head = topbar } = {}) {
     state.timer = p;
   };
 
-  const drawSetup = () => mount(root, setupView(cfg, source, state.timer.half !== false, head));
+  const drawSetup = () => mount(root, setupView(cfg, source, state.timer.half !== false, head, state.timer.mix !== false));
 
   const stopLoop = () => { if (timer) clearInterval(timer); timer = null; keepAwake(false); };
 
@@ -351,6 +347,10 @@ export async function renderTimer(root, { head = topbar } = {}) {
     if (ev.target.id === 't-half') {
       state.timer = { ...state.timer, half: ev.target.checked };
       if (ev.target.checked) { unlockAudio(); sounds.half(); }
+    }
+    if (ev.target.id === 't-mix') {
+      state.timer = { ...state.timer, mix: ev.target.checked };
+      drawSetup();
     }
   };
 
